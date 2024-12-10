@@ -1,0 +1,156 @@
+﻿@page "/Services/Management"
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управленческое консультирование - Reputation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        function changeText(option) {
+            const textBlock = document.getElementById('consulting-text');
+            const texts = {
+                strategic: [
+                    "Постановка долгосрочных целей, определение ключевых направлений развития и составление подробного плана действий.",
+                    "Определение миссии компании и формирование видения её будущего, включая описание роли и положения на рынке в перспективе.",
+                    "Разработка ключевых целей с использованием SMART-методологии для их четкости и измеримости.",
+                    "Планирование стратегии, описывающее шаги по достижению поставленных задач с учётом внутренних ресурсов и внешней среды."
+                ],
+                marketing: [
+                    "Исследование рынка с целью выявления актуальных тенденций, конкурентной ситуации и возможностей для расширения бизнеса.",
+                    "Организация и обработка рыночных данных: анализ структуры рынка, основных трендов и точек роста.",
+                    "Изучение стратегий конкурентов: определение их преимуществ, слабых сторон и методов работы.",
+                    "Формирование маркетинговой стратегии: постановка задач, выбор эффективных каналов продвижения и составление комплексного плана мероприятий.",
+                    "Оценка эффективности маркетинговых усилий: анализ результатов кампаний и корректировка действий на основе полученных данных."
+                ],
+                optimization: [
+                    "Повышение эффективности операционных процессов: устранение лишних или устаревших этапов, внедрение современных методов работы и автоматизация рутинных задач.",
+                    "Создание структурированной системы управления, которая помогает эффективно распределять обязанности между сотрудниками и подразделениями.",
+                    "Разработка программ мотивации и системы оплаты труда, направленных на достижение ключевых показателей эффективности (KPI)."
+
+                ]
+            };
+
+            textBlock.innerHTML = "";
+
+            const ul = document.createElement("ul");
+            ul.classList.add("list-disc", "pl-5", "text-gray-700"); 
+
+            texts[option].forEach(item => {
+                const li = document.createElement("li");
+                li.textContent = item;
+                ul.appendChild(li);
+            });
+
+            textBlock.appendChild(ul);
+        }
+    </script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <header class="bg-white shadow-md">
+        <div class="container mx-auto flex items-center justify-between p-4">
+            <a href="#" class="text-2xl font-bold text-orange-500">Reputation</a>
+            <nav class="flex space-x-4">
+                <a href="#" class="hover:text-orange-500">О компании</a>
+                <a href="/Services" class="hover:text-orange-500">Услуги</a>
+                <a href="/Contacts" class="hover:text-orange-500">Контакты</a>
+                <a href="/Registration" class="hover:text-orange-500">Регистрация</a>
+            </nav>
+            <div class="text-sm">
+                <p>+7 (999) 999-99-99</p>
+                <p>info@Reputation.ru</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto py-16 space-y-16">
+        <section class="flex justify-start">
+            <div class="w-1/2 bg-white p-8 shadow-lg rounded-lg">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Услуги консалтинга для бизнеса</h2>
+                <p class="text-gray-700">Управленческое консультирование помогает бизнесу достигать стратегических целей, разрабатывать планы действий и повышать эффективность.</p>
+            </div>
+        </section>
+
+        <section class="flex justify-center">
+            <div class="bg-white p-8 shadow-lg rounded-lg ">
+                <h2 class="text-xl font-bold text-center text-gray-800 mb-4">Выберите тип консалтинга</h2>
+                <div class="grid grid-cols-[35%_minmax(10%,_1fr)_1%] gap-4 items-start">
+                    <div class="space-y-4">
+                        <button onclick="changeText('strategic')" class="py-2 px-4 bg-orange-500 text-white rounded hover:bg-orange-600 w-3/4">
+                            Стратегический консалтинг
+                        </button>
+                        <button onclick="changeText('marketing')" class="py-2 px-4 bg-orange-500 text-white rounded hover:bg-orange-600 w-3/4">
+                            Маркетинговый консалтинг
+                        </button>
+                        <button onclick="changeText('optimization')" class="py-2 px-4 bg-orange-500 text-white rounded hover:bg-orange-600 w-3/4">
+                            Консалтинг по оптимизации процессов
+                        </button>
+                    </div>
+                    <div id="consulting-text" class="p-4 bg-gray-100 border rounded text-gray-700">
+                        Выберите один из видов консалтинга, чтобы увидеть описание.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <section class="flex justify-end">
+            <div class="w-1/2 bg-white p-8 shadow-lg rounded-lg">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Результаты услуги</h2>
+                <ul class="text-gray-700 space-y-4">
+                    <li>
+                        <strong>Увеличение рыночной доли:</strong> Благодаря разработанным стратегиям и маркетинговым мерам, клиент значительно увеличил свою долю на целевом рынке, улучшив свои конкурентные позиции.
+                    </li>
+                    <li>
+                        <strong>Повышение операционной эффективности:</strong> Реализованные изменения в бизнес-процессах позволили сократить время на выполнение ключевых операций, повысив общую производительность и снизив издержки.
+                    </li>
+                    <li>
+                        <strong>Улучшение финансовых показателей:</strong> Через оптимизацию стратегий и процессов компании удалось повысить доходность и улучшить показатели рентабельности.
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+
+
+    <section class="bg-white p-8 shadow-lg rounded-lg mb-16 w-full">
+        <h2 class="text-xl font-bold mb-4 text-center">Почему выбирают нас</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="flex items-center">
+                <img src="icon1.png" alt="Иконка" class="w-16 h-16 mr-4">
+                <p class="text-gray-700">Профессиональная команда консультантов с многолетним опытом работы.</p>
+            </div>
+            <div class="flex items-center">
+                <img src="icon2.png" alt="Иконка" class="w-16 h-16 mr-4">
+                <p class="text-gray-700">Гарантии на выполнение поставленных задач и соблюдение сроков.</p>
+            </div>
+            <div class="flex items-center">
+                <img src="icon3.png" alt="Иконка" class="w-16 h-16 mr-4">
+                <p class="text-gray-700">Экспертный подход к анализу и реализации решений для бизнеса.</p>
+            </div>
+            <div class="flex items-center">
+                <img src="icon4.png" alt="Иконка" class="w-16 h-16 mr-4">
+                <p class="text-gray-700">Точное соблюдение сроков и гибкость в выполнении проектов.</p>
+            </div>
+        </div>
+    </section>
+    </main>
+    <section class="bg-gray-800 text-white p-8 rounded-lg">
+        <h2 class="text-xl font-bold mb-4 text-center">Порядок работы</h2>
+        <ol class="list-decimal list-inside space-y-2">
+            <li>Оставляете заявку.</li>
+            <li>Мы связываемся с вами.</li>
+            <li>Заключение договора.</li>
+            <li>Выполнение работы.</li>
+        </ol>
+    </section>
+
+    <footer class="bg-gray-900 text-white py-8">
+        <div class="container mx-auto text-center">
+            <p>© 2024 Reputation</p>
+        </div>
+    </footer>
+</body>
+</html>
