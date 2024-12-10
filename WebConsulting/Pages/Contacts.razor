@@ -1,0 +1,118 @@
+﻿@page "/Contacts"
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Контакты | Репутация</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        main {
+            flex-grow: 1;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 text-gray-800">
+
+    <header class="bg-white shadow-md">
+        <div class="container mx-auto flex items-center justify-between p-4">
+            <a href="#" class="text-2xl font-bold text-orange-500">Репцтация</a>
+            <nav class="flex space-x-4">
+                <a href="#" class="hover:text-orange-500">О компании</a>
+                <a href="/Services" class="hover:text-orange-500">Услуги</a>
+                <a href="#" class="hover:text-orange-500">Контакты</a>
+            </nav>
+            <div class="text-sm">
+                <p>+7 (499) 397-70-91</p>
+                <p>info@Reputation.ru</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto py-8 px-4 lg:px-16 min-h-[calc(100vh-64px)]">
+        <section class="bg-gray-50 py-8 lg:py-16">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                <div class="space-y-6 px-2 lg:px-8">
+                    <h2 class="text-2xl font-bold text-gray-800">Контакты</h2>
+                    <p class="text-gray-600">Время работы: Будни с 10:00 до 18:00.</p>
+                    <p class="text-gray-600">Телефон: +7 499 397-70-91</p>
+                    <p class="text-gray-600">
+                        Электронная почта:
+                        <a href="mailto:info@Reputation.ru" class="text-orange-500 hover:underline">info@Reputation.ru</a>
+                    </p>
+                    <p class="text-gray-600">Адрес: 115201, г. Москва, Каширский проезд 25к2, метро Варшавская.</p>
+
+                    <div class="space-y-4 mt-6">
+                        <button onclick="location.href='mailto:info@Reputation.ru';" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
+                            Написать на почту
+                        </button>
+                        <button onclick="openCallbackModal();" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
+                            Перезвонить
+                        </button>
+                    </div>
+                </div>
+
+                <div class="w-full h-96 px-4 lg:px-0">
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d934.5023011326357!2d40.37185519979489!3d56.146149483426996!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x414c7bfa4e538e7f%3A0xab6a6d19c32d34f6!2z0JLQu9Cw0LTQuNC80LjRgNGB0LrQuNC5INCT0L7RgdGD0LTQsNGA0YHRgtCy0LXQvdC90YvQuSDRg9C90LjQstC10YDRgdC40YLQtdGC!5e0!3m2!1sru!2sru!4v1733826991888!5m2!1sru!2sru
+"
+                            width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="callbackModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Перезвонить</h3>
+            <form action="#" method="POST" class="space-y-4">
+                <div>
+                    <label for="name" class="block text-gray-600">Имя</label>
+                    <input type="text" id="name" name="name"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+                <div>
+                    <label for="phone" class="block text-gray-600">Номер телефона</label>
+                    <input type="tel" id="phone" name="phone"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" onclick="closeCallbackModal();" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Отмена</button>
+                    <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">Отправить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="bg-gray-800 text-white py-4 mt-8">
+        <div class="container mx-auto text-center">
+            <p>&copy; 2022-2024 Reputation Consulting</p>
+        </div>
+    </footer>
+
+    <script>
+        function openCallbackModal() {
+            document.getElementById('callbackModal').classList.remove('hidden');
+        }
+
+        function closeCallbackModal() {
+            document.getElementById('callbackModal').classList.add('hidden');
+        }
+    </script>
+</body>
+
+</html>
+
+
