@@ -1,0 +1,63 @@
+﻿@page "/Registration"
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Авторизация - Reputation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <header class="bg-white shadow-md">
+        <div class="container mx-auto flex items-center justify-between p-4">
+            <a href="#" class="text-2xl font-bold text-orange-500">Reputation</a>
+            <nav class="flex space-x-4">
+                <a href="" class="hover:text-orange-500">О компании</a>
+                <a href="/Services" class="hover:text-orange-500">Услуги</a>
+                <a href="/Contacts" class="hover:text-orange-500">Контакты</a>
+                <a href="/Registration" class="hover:text-orange-500">Регистрация</a>
+            </nav>
+            <div class="text-sm text-right">
+                <p>Будни с 10:00 до 18:00</p>
+                <p>info@Reputation.ru</p>
+                <p>+79999999999</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto py-16">
+        <div class="bg-white p-8 shadow-lg rounded-lg max-w-md mx-auto">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6">Авторизация</h1>
+            <form>
+                <div class="mb-4">
+                    <label for="email" class="block text-sm font-medium text-gray-600">E-mail:</label>
+                    <input type="email" id="email" name="email" placeholder="sample@domain.ru" class="mt-1 w-full px-4 py-2 border rounded-md focus:ring focus:ring-orange-200 focus:outline-none">
+                </div>
+                <div class="mb-4">
+                    <label for="password" class="block text-sm font-medium text-gray-600">Пароль:</label>
+                    <input type="password" id="password" name="password" placeholder="********" class="mt-1 w-full px-4 py-2 border rounded-md focus:ring focus:ring-orange-200 focus:outline-none">
+                    <a href="#" class="text-sm text-orange-500 hover:underline">Забыли пароль?</a>
+                </div>
+                <div class="flex items-center justify-between">
+                    <button type="submit" class="bg-orange-500 text-white px-6 py-2 rounded hover:bg-orange-600">Вход</button>
+                    <a href="#" class="bg-gray-100 text-gray-800 px-6 py-2 rounded border hover:bg-gray-200">Регистрация</a>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto text-center">
+            <p class="text-lg font-bold">Reputation</p>
+            <p class="text-sm">Focus on efficiency</p>
+            <p class="mt-2">Консалтинговая компания</p>
+            <p></p>
+            <div class="mt-4 space-y-2 text-sm">
+                <a href="#" class="hover:underline">Политика конфиденциальности</a> | <a href="#" class="hover:underline">Карта сайта</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
