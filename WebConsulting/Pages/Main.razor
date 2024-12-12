@@ -1,5 +1,6 @@
 ﻿@page "/"
 @inject IJSRuntime JSRuntime
+@layout MainLayout
 
 <!DOCTYPE html>
 <html lang="en">
@@ -11,54 +12,39 @@
 </head>
 <body class="bg-gray-100 text-gray-800">
 
-    <header class="bg-white shadow-md">
-        <div class="container mx-auto flex items-center justify-between p-4">
-            <a href="#" class="text-2xl font-bold text-orange-500">Reputation</a>
-            <nav class="flex space-x-4">
-                <a href="#" class="hover:text-orange-500">О компании</a>
-                <a href="/Services" class="hover:text-orange-500">Услуги</a>
-                <a href="/Contacts" class="hover:text-orange-500">Контакты</a>
-                <a href="/Reviews" class="hover:text-orange-500">Отзывы</a>
-                @if (ShowRegistrationButton)
-                {
-                    <a href="/Registration" class="hover:text-orange-500">Регистрация</a>
-                }
-                @if (ShowAdminProfile)
-                {
-                    <a href="/pAdmin" class="hover:text-orange-500">Профиль</a>
-                }
-
-                @if (ShowUserProfile)
-                {
-                    <a href="/pUser" class="hover:text-orange-500">Профиль</a>
-                }
-            </nav>
-            <div class="text-sm">
-                <p>+7 (999) 999-99-99</p>
-                <p>info@Reputation.ru</p>
-            </div>
-        </div>
-    </header>
-
     <section class="bg-white py-16">
         <div class="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div>
                 <h1 class="text-4xl font-bold text-gray-800">О компании Reputation</h1>
-                <p class="mt-4 text-gray-600">Мы молодая компания, работающая на рынке консалтинга и бизнес-анализа...</p>
+                <p class="mt-4 text-gray-600">Reputation — это консалтинговое агентство, которое специализируется на предоставлении услуг по консультированию, аналитике и бизнес-анализу, систематизации и оптимизации деятельности малых и средних предприятий. Наши консультанты и аналитики понимают уникальные задачи, с которыми сталкиваются компании, и оказывают комплексную поддержку менеджменту по следующим направлениям:</p>
+                <ul class="list-disc ml-8 mt-4 text-gray-600">
+                    <li><strong>Консультирование и профессиональный консалтинг для бизнеса</strong>: Помогаем компаниям развивать устойчивые стратегии и предоставляем практическую поддержку, обеспечивая их долгосрочное развитие.</li>
+                    <li><strong>Аналитика</strong>: Исследуем данные для выявления закономерностей, трендов и новых возможностей, которые помогут бизнесу продвигаться вперёд.</li>
+                    <li><strong>Управление компанией</strong>: Разрабатываем структуры, создаём и внедряем системы KPI и BSC, эффективно управляем ресурсами и повышаем их отдачу.</li>
+                    <li><strong>Анализ предприятия</strong>: Проводим тщательную оценку текущего состояния внутренней и внешней среды организации, чтобы выявить точки роста и улучшения.</li>
+                    <li><strong>Повышение эффективности</strong>: Оптимизируем процессы и организационные структуры, повышаем продуктивность персонала и снижаем операционные издержки.</li>
+                    <li><strong>Непрерывное улучшение</strong>: Внедряем системы менеджмента качества ISO 9001 и лучшие мировые практики, чтобы обеспечить постоянное совершенствование и развитие бизнеса.</li>
+                </ul>
+                <p class="mt-4 text-gray-600">Мы стремимся к тому, чтобы наши клиенты достигали своих стратегических целей и планов, получая при этом высококлассные консалтинговые услуги, адаптированные под их индивидуальные потребности.</p>
+                <p class="mt-4 text-gray-800 font-bold">Reputation — доверие и профессионализм в каждом шаге!</p>
             </div>
-            <img src="https://via.placeholder.com/600x400" alt="Team at work" class="rounded-lg shadow-md">
+            <img src="https://clck.ru/3FBEej" alt="Team at work" class="rounded-lg shadow-md">
         </div>
     </section>
 
+
     <section class="bg-gray-50 py-16">
         <div class="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-            <img src="https://via.placeholder.com/600x400" alt="Mission" class="rounded-lg shadow-md">
+            <img src="https://clck.ru/3FBET2" alt="Mission" class="rounded-lg shadow-md">
             <div>
                 <h2 class="text-2xl font-bold text-gray-800">Наша миссия</h2>
-                <p class="mt-4 text-gray-600">Выявление и позиционирование внутренних возможностей для роста...</p>
+                <p class="mt-4 text-gray-600">Наша миссия заключается в том, чтобы выявлять и развивать внутренние возможности наших клиентов для роста и устойчивого развития. Мы стремимся к созданию таких решений, которые будут не только отвечать текущим потребностям бизнеса, но и способствовать его долгосрочному успеху.</p>
+                <p class="mt-4 text-gray-600">Мы верим в индивидуальный подход к каждому клиенту и стремимся к тому, чтобы наши рекомендации и стратегии приносили реальные результаты. Наша цель — сделать бизнес наших клиентов более эффективным, устойчивым и конкурентоспособным.</p>
+                <p class="mt-4 text-gray-600">Reputation — это не просто консалтинговое агентство, это ваш партнёр на пути к успеху, готовый поддержать и направить в любой ситуации.</p>
             </div>
         </div>
     </section>
+
 
     <section class="bg-white py-16">
         <div class="container mx-auto text-center">
@@ -92,15 +78,13 @@
                 <p class="mt-2 text-gray-600">info@Reputation.ru</p>
                 <button class="mt-4 bg-orange-500 text-white px-4 py-2 rounded">Связаться с нами</button>
             </div>
-            <img src="https://via.placeholder.com/600x400" alt="Map" class="rounded-lg shadow-md">
+            <div class="w-full h-96 px-4 lg:px-0">
+                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d934.5023011326357!2d40.37185519979489!3d56.146149483426996!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x414c7bfa4e538e7f%3A0xab6a6d19c32d34f6!2z0JLQu9Cw0LTQuNC80LjRgNGB0LrQuNC5INCT0L7RgdGD0LTQsNGA0YHRgtCy0LXQvdC90YvQuSDRg9C90LjQstC10YDRgdC40YLQtdGC!5e0!3m2!1sru!2sru!4v1733826991888!5m2!1sru!2sru
+"
+                        width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+            </div>
         </div>
     </section>
-
-    <footer class="bg-gray-800 text-white py-8">
-        <div class="container mx-auto text-center">
-            <p>&copy; 2022-2024 Reputation Consulting</p>
-        </div>
-    </footer>
 
 </body>
 </html>

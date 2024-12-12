@@ -1,0 +1,80 @@
+﻿@inject NavigationManager NavigationManager
+
+<div class="bg-gray-50 py-4">
+    <div class="container mx-auto">
+        <p class="text-sm text-gray-500">
+            <a href="/" class="text-orange-500">Главная</a>
+            @foreach (var segment in Segments)
+            {
+                <span> / </span>
+                @if (segment.IsCurrent)
+                {
+                    <span>@segment.DisplayName</span>
+                }
+                else
+                {
+                    <a href="@segment.Uri" class="text-orange-500">@segment.DisplayName</a>
+                }
+            }
+        </p>
+    </div>
+</div>
+
+@code {
+    private List<BreadcrumbSegment> Segments { get; set; } = new List<BreadcrumbSegment>();
+
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += OnLocationChanged;
+        UpdateSegments();
+    }
+
+    private void OnLocationChanged(object sender, LocationChangedEventArgs e)
+    {
+        UpdateSegments();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void UpdateSegments()
+    {
+        Segments.Clear();
+        var uri = new Uri(NavigationManager.Uri);
+        var paths = uri.AbsolutePath.Split("/", StringSplitOptions.RemoveEmptyEntries);
+
+        for (int i = 0; i < paths.Length; i++)
+        {
+            var segment = new BreadcrumbSegment
+                {
+                    DisplayName = ConvertToDisplayName(paths[i]),
+                    Uri = "/" + string.Join("/", paths.Take(i + 1)),
+                    IsCurrent = (i == paths.Length - 1)
+                };
+
+            Segments.Add(segment);
+        }
+    }
+
+    private string ConvertToDisplayName(string path)
+    {
+        return path switch
+        {
+            "Services" => "Услуги",
+            "Contacts" => "Контакты",
+            "Reviews" => "Отзывы",
+            "Registration" => "Регистрация",
+            _ => char.ToUpper(path[0]) + path[1..]
+        };
+    }
+
+    private class BreadcrumbSegment
+    {
+        public string DisplayName { get; set; }
+        public string Uri { get; set; }
+        public bool IsCurrent { get; set; }
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+}

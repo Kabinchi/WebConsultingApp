@@ -1,13 +1,13 @@
 ﻿@page "/Reviews"
+@layout MainLayout
 @inject IJSRuntime JSRuntime
 
-<!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Контакты | Reputation</title>
+    <title>Отзывы | Reputation</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         html,
@@ -28,36 +28,7 @@
 
 <body class="bg-gray-100 text-gray-800">
 
-    <header class="bg-white shadow-md">
-        <div class="container mx-auto flex items-center justify-between p-4">
-            <a href="#" class="text-2xl font-bold text-orange-500">Reputation</a>
-            <nav class="flex space-x-4">
-                <a href="#" class="hover:text-orange-500">О компании</a>
-                <a href="/Services" class="hover:text-orange-500">Услуги</a>
-                <a href="/Contacts" class="hover:text-orange-500">Контакты</a>
-                <a href="/Reviews" class="hover:text-orange-500">Отзывы</a>
-                @if (ShowRegistrationButton)
-                {
-                    <a href="/Registration" class="hover:text-orange-500">Регистрация</a>
-                }
-                @if (ShowAdminProfile)
-                {
-                    <a href="/pAdmin" class="hover:text-orange-500">Профиль</a>
-                }
-
-                @if (ShowUserProfile)
-                {
-                    <a href="/pUser" class="hover:text-orange-500">Профиль</a>
-                }
-            </nav>
-            <div class="text-sm">
-                <p>+7 (999) 999-99-99</p>
-                <p>info@Reputation.ru</p>
-            </div>
-        </div>
-    </header>
-
-    <main class="container mx-auto py-8 px-4 lg:px-16 min-h-[calc(95%-64px)]">
+    <main class="container mx-auto py-8 px-4 lg:px-16 min-h-[calc(100vh-64px)]">
         <div class="bg-white p-8 shadow-lg rounded-lg max-w-7xl mx-auto">
             <h1 class="text-2xl font-bold text-gray-800 mb-6">Общие отзывы</h1>
 
@@ -68,14 +39,35 @@
         </div>
     </main>
 
-
-
-    <footer class="bg-gray-800 text-white py-4 mt-8">
-        <div class="container mx-auto text-center">
-            <p>&copy; 2022-2024 Reputation Consulting</p>
+    <div id="callbackModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Перезвонить</h3>
+            <form action="#" method="POST" class="space-y-4">
+                <div>
+                    <label for="name" class="block text-gray-600">Имя</label>
+                    <input type="text" id="name" name="name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+                <div>
+                    <label for="phone" class="block text-gray-600">Номер телефона</label>
+                    <input type="tel" id="phone" name="phone" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" onclick="closeCallbackModal();" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Отмена</button>
+                    <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">Отправить</button>
+                </div>
+            </form>
         </div>
-    </footer>
+    </div>
 
+    <script>
+        function openCallbackModal() {
+            document.getElementById('callbackModal').classList.remove('hidden');
+        }
+
+        function closeCallbackModal() {
+            document.getElementById('callbackModal').classList.add('hidden');
+        }
+    </script>
 </body>
 
 </html>

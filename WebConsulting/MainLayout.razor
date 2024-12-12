@@ -1,3 +1,15 @@
 ﻿@inherits LayoutComponentBase
+@using WebConsulting.Layouts
 
-<main> @Body </main>
+<div class="page">
+    <Header />
+    <Breadcrumbs />
+    <main class="main">
+        @Body
+    </main>
+    <Footer />
+</div>
+
+@code {
+    @inject IJSRuntime JSRuntime
+}
