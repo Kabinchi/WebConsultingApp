@@ -25,6 +25,12 @@ public partial class Application
     [Column(TypeName = "datetime")]
     public DateTime CreatedAt { get; set; }
 
+    public int? ServiceId { get; set; }
+
+    [ForeignKey("ServiceId")]
+    [InverseProperty("Applications")]
+    public virtual Service Service { get; set; }
+
     [ForeignKey("UserId")]
     [InverseProperty("Applications")]
     public virtual User User { get; set; }

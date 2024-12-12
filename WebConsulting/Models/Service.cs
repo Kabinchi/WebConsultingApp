@@ -8,31 +8,25 @@ using Microsoft.EntityFrameworkCore;
 
 namespace WebConsulting.Models;
 
-[Index("Email", Name = "UQ__Users__A9D1053473EFD549", IsUnique = true)]
-public partial class User
+public partial class Service
 {
     [Key]
     public int Id { get; set; }
 
     [Required]
+    [StringLength(200)]
+    public string Name { get; set; }
+
+    [Required]
+    public string Description { get; set; }
+
+    [Required]
+    [StringLength(50)]
+    public string Price { get; set; }
+
     [StringLength(100)]
-    public string FullName { get; set; }
+    public string Category { get; set; }
 
-    [Required]
-    [StringLength(100)]
-    public string Email { get; set; }
-
-    [Required]
-    [StringLength(255)]
-    public string Password { get; set; }
-
-    [Required]
-    [StringLength(20)]
-    public string Role { get; set; }
-
-    [InverseProperty("User")]
+    [InverseProperty("Service")]
     public virtual ICollection<Application> Applications { get; set; } = new List<Application>();
-
-    [InverseProperty("User")]
-    public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
 }

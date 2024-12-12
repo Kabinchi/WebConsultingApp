@@ -88,38 +88,3 @@
 
 </body>
 </html>
-
-@code {
-    private bool ShowRegistrationButton { get; set; } = true;
-    private bool ShowAdminProfile { get; set; } = false;
-    private bool ShowUserProfile { get; set; } = false;
-
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            var userRole = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "userRole");
-
-            if (!string.IsNullOrEmpty(userRole))
-            {
-                if (userRole == "Admin")
-                {
-                    ShowAdminProfile = true;
-                }
-                else if (userRole == "User")
-                {
-                    ShowUserProfile = true;
-                }
-                ShowRegistrationButton = false;
-            }
-            else
-            {
-                ShowRegistrationButton = true;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка при извлечении данных с сессии: {ex.Message}");
-        }
-    }
-}

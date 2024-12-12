@@ -23,47 +23,56 @@ public partial class ConsultingDBContext : DbContext
 
     public virtual DbSet<Review> Reviews { get; set; }
 
+    public virtual DbSet<Service> Services { get; set; }
+
     public virtual DbSet<User> Users { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Data Source=DESKTOP-A928918\\SQLEXPRESS;Initial Catalog=ConsultingDB;Integrated Security=True");
+        => optionsBuilder.UseSqlServer("Data Source=DESKTOP-A928918\\SQLEXPRESS;Initial Catalog=ConsultingDB;Integrated Security=True;Encrypt=False");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Application>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Applicat__3214EC071673B127");
+            entity.HasKey(e => e.Id).HasName("PK__Applicat__3214EC0779C4C0BC");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
             entity.Property(e => e.Status).HasDefaultValue("Pending");
 
+            entity.HasOne(d => d.Service).WithMany(p => p.Applications).HasConstraintName("FK__Applicati__Servi__36B12243");
+
             entity.HasOne(d => d.User).WithMany(p => p.Applications)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Applicati__UserI__3C69FB99");
+                .HasConstraintName("FK__Applicati__UserI__29572725");
         });
 
         modelBuilder.Entity<Article>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Articles__3214EC07233D02D2");
+            entity.HasKey(e => e.Id).HasName("PK__Articles__3214EC07AE7B5612");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
         });
 
         modelBuilder.Entity<Review>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Reviews__3214EC074386ADED");
+            entity.HasKey(e => e.Id).HasName("PK__Reviews__3214EC075653FD9A");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
 
             entity.HasOne(d => d.User).WithMany(p => p.Reviews)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Reviews__UserId__403A8C7D");
+                .HasConstraintName("FK__Reviews__UserId__2D27B809");
+        });
+
+        modelBuilder.Entity<Service>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Services__3214EC07D9D5BCDB");
         });
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Users__3214EC073C90801B");
+            entity.HasKey(e => e.Id).HasName("PK__Users__3214EC073C014E66");
         });
 
         OnModelCreatingPartial(modelBuilder);

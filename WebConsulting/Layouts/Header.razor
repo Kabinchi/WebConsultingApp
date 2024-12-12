@@ -3,7 +3,7 @@
     private bool ShowAdminProfile { get; set; } = false;
     private bool ShowUserProfile { get; set; } = false;
 
-    protected override async Task OnInitializedAsync()
+    public async Task UpdateUserState()
     {
         try
         {
@@ -24,7 +24,11 @@
             else
             {
                 ShowRegistrationButton = true;
+                ShowAdminProfile = false;
+                ShowUserProfile = false;
             }
+
+            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -32,21 +36,41 @@
         }
     }
 
-    @inject IJSRuntime JSRuntime
+    protected override async Task OnInitializedAsync()
+    {
+        NavigationManager.LocationChanged += async (sender, args) => await UpdateUserState();
+        await UpdateUserState();
+    }
 
+    public async Task HandleLogout()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("sessionStorage.removeItem", "userRole");
+            await UpdateUserState();
+            NavigationManager.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка при выходе из аккаунта: {ex.Message}");
+        }
+    }
+
+    [Inject] IJSRuntime JSRuntime { get; set; }
+    [Inject] NavigationManager NavigationManager { get; set; }
 }
 
 <header class="bg-white shadow-md">
     <div class="container mx-auto flex items-center justify-between p-4">
-        <a href="" class="text-2xl font-bold text-orange-500">Reputation</a>
+        <a href="/" class="text-2xl font-bold text-orange-500">Reputation</a>
         <nav class="flex space-x-4">
-            <a href="" class="hover:text-orange-500">О компании</a>
-            <a href="/Services" class="hover:text-orange-500">Услуги</a>
-            <a href="/Contacts" class="hover:text-orange-500">Контакты</a>
-            <a href="/Reviews" class="hover:text-orange-500">Отзывы</a>
+            <a href="/" class="hover:text-orange-500">О компании</a>
+            <a href="/services" class="hover:text-orange-500">Услуги</a>
+            <a href="/contacts" class="hover:text-orange-500">Контакты</a>
+            <a href="/reviews" class="hover:text-orange-500">Отзывы</a>
             @if (ShowRegistrationButton)
             {
-                <a href="/Registration" class="hover:text-orange-500">Регистрация</a>
+                <a href="/registration" class="hover:text-orange-500">Регистрация</a>
             }
 
             @if (ShowAdminProfile)
