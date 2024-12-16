@@ -8,17 +8,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Регистрация | Reputation</title>
+    <title>Профиль пользователя | Reputation</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        html,
-        body {
+        html, body {
             height: 100%;
+            margin: 0;
         }
 
         body {
             display: flex;
             flex-direction: column;
+            min-height: 100vh;
         }
 
         main {
@@ -28,18 +29,15 @@
 </head>
 
 <body class="bg-gray-100 text-gray-800">
-
     <main class="container mx-auto py-8 px-4 lg:px-16 min-h-[calc(95%-64px)]">
         <div class="bg-white p-8 shadow-lg rounded-lg max-w-md mx-auto">
-            <h1 class="text-2xl font-bold text-gray-800 mb-6">Юзер панель</h1>
+            <h1 class="text-2xl font-bold text-gray-800 mb-6">Пользователь панель</h1>
             <button @onclick="Logout" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Выйти</button>
         </div>
     </main>
-
 </body>
 
 </html>
-
 
 @code {
     private async Task Logout()
@@ -47,7 +45,6 @@
         try
         {
             await JSRuntime.InvokeVoidAsync("sessionStorage.removeItem", "userRole");
-
             NavigationManager.NavigateTo("/");
         }
         catch (Exception ex)
