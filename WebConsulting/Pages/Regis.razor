@@ -1,0 +1,144 @@
+﻿@page "/Regis"
+@using WebConsulting.Models
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject IEmailService EmailService
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация | Reputation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        main {
+            flex-grow: 1;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 text-gray-800">
+    <main class="container mx-auto py-8 px-4 lg:px-16 min-h-[calc(95%-64px)]">
+        <div class="bg-white p-8 shadow-lg rounded-lg max-w-md mx-auto">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6">Регистрация</h1>
+            <form @onsubmit="HandleRegistration">
+                <div class="mb-4">
+                    <label for="fullName" class="block text-sm font-medium text-gray-600">Никнейм:</label>
+                    <input type="text" id="fullName" @bind="FullName" placeholder="Введите никнейм" class="mt-1 w-full px-4 py-2 border rounded-md focus:ring focus:ring-orange-200 focus:outline-none" />
+                </div>
+                <div class="mb-4">
+                    <label for="email" class="block text-sm font-medium text-gray-600">E-mail:</label>
+                    <input type="email" id="email" @bind="Email" placeholder="sample@domain.ru" class="mt-1 w-full px-4 py-2 border rounded-md focus:ring focus:ring-orange-200 focus:outline-none" />
+                </div>
+                <div class="mb-4">
+                    <label for="password" class="block text-sm font-medium text-gray-600">Пароль:</label>
+                    <div class="relative">
+                        <input type="@PasswordInputType" id="password" @bind="Password" placeholder="********" class="mt-1 w-full px-4 py-2 border rounded-md focus:ring focus:ring-orange-200 focus:outline-none" />
+                        <button type="button" @onclick="TogglePasswordVisibility" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700">
+                            @if (IsPasswordVisible)
+                            {
+                                <span>🙈</span>
+                            }
+                            else
+                            {
+                                <span>👁️</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label for="confirmationCode" class="block text-sm font-medium text-gray-600">Код подтверждения:</label>
+                    <input type="text" id="confirmationCode" @bind="ConfirmationCode" placeholder="Введите код подтверждения" class="mt-1 w-full px-4 py-2 border rounded-md focus:ring focus:ring-orange-200 focus:outline-none" />
+                </div>
+                <button type="submit" class="bg-orange-500 text-white px-6 py-2 rounded hover:bg-orange-600">Зарегистрироваться</button>
+            </form>
+            <div class="text-center mt-4">
+                <button @onclick="SendConfirmationCode" class="text-blue-500 hover:text-blue-600">Отправить код подтверждения</button>
+            </div>
+
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="text-center text-red-500 mt-4">
+                    @ErrorMessage
+                </div>
+            }
+        </div>
+    </main>
+
+</body>
+</html>
+
+@code {
+    private string FullName { get; set; }
+    private string Email { get; set; }
+    private string Password { get; set; }
+    private string ConfirmationCode { get; set; }
+    private string ErrorMessage { get; set; }
+
+    private string GeneratedCode { get; set; }
+
+    private bool IsPasswordVisible { get; set; } = false;
+    private string PasswordInputType => IsPasswordVisible ? "text" : "password";
+
+    private async Task HandleRegistration()
+    {
+        if (ConfirmationCode == GeneratedCode)
+        {
+            using var context = new ConsultingDBContext();
+            var user = new User
+                {
+                    FullName = FullName,
+                    Email = Email,
+                    Password = Password,
+                    Role = "User"
+                };
+            context.Users.Add(user);
+            await context.SaveChangesAsync();
+
+            NavigationManager.NavigateTo("/");
+        }
+        else
+        {
+            ErrorMessage = "Неверный код подтверждения.";
+        }
+    }
+
+    private async Task SendConfirmationCode()
+    {
+        GeneratedCode = GenerateConfirmationCode();
+
+        var isCodeSent = await EmailService.SendConfirmationCodeAsync(Email, GeneratedCode);
+
+        if (isCodeSent)
+        {
+            ErrorMessage = "Код подтверждения отправлен на ваш email.";
+        }
+        else
+        {
+            ErrorMessage = "Ошибка при отправке кода подтверждения.";
+        }
+    }
+
+    private string GenerateConfirmationCode()
+    {
+        Random rand = new Random();
+        return rand.Next(100000, 999999).ToString();
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        IsPasswordVisible = !IsPasswordVisible;
+    }
+}

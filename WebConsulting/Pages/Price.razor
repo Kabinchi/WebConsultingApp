@@ -1,0 +1,203 @@
+﻿@page "/Price"
+@using Microsoft.AspNetCore.Components.Forms
+@using WebConsulting.Models
+@using WebConsulting.Other
+@using Microsoft.AspNetCore.Components.Forms
+@using WebConsulting.Models
+@using WebConsulting.Other
+@inject ServicesService ServicesService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+@code {
+    private List<Service> services;
+    private bool IsAdmin { get; set; }
+    private Service newService = new Service();
+    private Service editingService = new Service();
+    private bool showAddModal = false;
+    private bool showEditModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        services = await ServicesService.GetAllServicesAsync();
+        var userRole = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "userRole");
+        IsAdmin = userRole == "Admin";
+    }
+
+    private IEnumerable<IGrouping<string, Service>> GroupedServices =>
+    services?.GroupBy(s => s.Category);
+
+    private async Task DeleteService(int serviceId)
+    {
+        await ServicesService.DeleteServiceAsync(serviceId);
+        services = await ServicesService.GetAllServicesAsync();
+    }
+
+    private void ShowAddModal()
+    {
+        newService = new Service(); 
+        showAddModal = true;
+    }
+
+
+    private void CloseAddModal()
+    {
+        showAddModal = false;
+    }
+
+    private void ShowEditModal(Service service)
+    {
+        editingService = service;
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+    }
+
+    private async Task AddService()
+    {
+        await ServicesService.AddServiceAsync(newService);
+        services = await ServicesService.GetAllServicesAsync();
+        showAddModal = false; 
+
+        newService = new Service(); 
+    }
+
+
+    private async Task SaveService()
+    {
+        await ServicesService.UpdateServiceAsync(editingService);
+        services = await ServicesService.GetAllServicesAsync();
+        showEditModal = false; 
+    }
+}
+
+<!DOCTYPE html>
+<html lang="ru">
+
+<body class="font-sans bg-gray-50 text-gray-800">
+
+    <section class="bg-gray-100 py-12">
+        <div class="container mx-auto px-6">
+            <h1 class="text-3xl font-semibold text-gray-800">Прайс-лист на услуги</h1>
+            <p class="mt-4 text-gray-600">Базовые тарифы на услуги компании Business Aid.</p>
+        </div>
+    </section>
+
+    <section class="container mx-auto px-6 my-12">
+        @if (services == null)
+        {
+            <p>Загрузка услуг...</p>
+        }
+        else
+        {
+            @foreach (var categoryGroup in GroupedServices)
+            {
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-700 mb-4">@categoryGroup.Key</h2>
+                    <ul>
+                        @foreach (var service in categoryGroup)
+                        {
+                            <li class="flex justify-between py-3 border-b">
+                                <div class="flex space-x-4">
+                                    <span>@service.Name</span>
+                                    <span class="text-orange-500 font-semibold">@service.FormattedPrice</span>
+                                </div>
+                                @if (IsAdmin)
+                                {
+                                    <div class="space-x-2">
+                                        <button class="bg-blue-500 text-white py-1 px-3 rounded hover:bg-blue-600" @onclick="() => ShowEditModal(service)">Редактировать</button>
+                                        <button class="bg-red-500 text-white py-1 px-3 rounded hover:bg-red-600" @onclick="() => DeleteService(service.Id)">Удалить</button>
+                                    </div>
+                                }
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+        }
+    </section>
+
+    @if (IsAdmin)
+    {
+        <section class="text-center py-6">
+            <button class="bg-green-500 text-white py-2 px-6 rounded hover:bg-green-600" @onclick="ShowAddModal">Добавить услугу</button>
+        </section>
+    }
+
+    @if (showAddModal)
+    {
+        <div class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
+            <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Добавить услугу</h3>
+                <EditForm Model="newService" OnValidSubmit="AddService">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div>
+                        <label>Название</label>
+                        <InputText @bind-Value="newService.Name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                    </div>
+                    <div>
+                        <label>Описание</label>
+                        <InputTextArea @bind-Value="newService.Description" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                    </div>
+                    <div>
+                        <label>Цена</label>
+                        <InputNumber @bind-Value="newService.Price" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                    </div>
+                    <div>
+                        <label>Категория</label>
+                        <InputText @bind-Value="newService.Category" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                    </div>
+
+                    <div class="flex justify-end space-x-4 mt-4">
+                        <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" @onclick="CloseAddModal">Отмена</button>
+                        <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">Добавить</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+
+    @if (showEditModal)
+    {
+        <div class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
+            <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Редактировать услугу</h3>
+                <EditForm Model="editingService" OnValidSubmit="SaveService">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div>
+                        <label>Название</label>
+                        <InputText @bind-Value="editingService.Name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                    </div>
+                    <div>
+                        <label>Описание</label>
+                        <InputTextArea @bind-Value="editingService.Description" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                    </div>
+                    <div>
+                        <label>Цена</label>
+                        <InputNumber @bind-Value="editingService.Price" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                    </div>
+                    <div>
+                        <label>Категория</label>
+                        <InputText @bind-Value="editingService.Category" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                    </div>
+
+                    <div class="flex justify-end space-x-4 mt-4">
+                        <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" @onclick="CloseEditModal">Отмена</button>
+                        <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">Сохранить</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+
+</body>
+</html>

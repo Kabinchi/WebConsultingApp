@@ -21,11 +21,13 @@ public partial class Service
     public string Description { get; set; }
 
     [Required]
-    [StringLength(50)]
-    public string Price { get; set; }
-
+    public int Price { get; set; }
+    [Required]
     [StringLength(100)]
     public string Category { get; set; }
+
+    public string FormattedPrice => $"от {Price:n0} р."; 
+
 
     [InverseProperty("Service")]
     public virtual ICollection<Application> Applications { get; set; } = new List<Application>();

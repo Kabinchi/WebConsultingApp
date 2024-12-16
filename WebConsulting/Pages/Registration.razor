@@ -36,20 +36,32 @@
             <h1 class="text-2xl font-bold text-gray-800 mb-6">Авторизация</h1>
             <form @onsubmit="HandleLogin">
                 <div class="mb-4">
-                    <label for="email" class="block text-sm font-medium text-gray-600">E-mail:</label>
-                    <input type="email" id="email" @bind="Email" placeholder="sample@domain.ru" class="mt-1 w-full px-4 py-2 border rounded-md focus:ring focus:ring-orange-200 focus:outline-none" />
+                    <label for="loginEmail" class="block text-sm font-medium text-gray-600">E-mail:</label>
+                    <input type="email" id="loginEmail" @bind="Email" placeholder="sample@domain.ru" class="mt-1 w-full px-4 py-2 border rounded-md focus:ring focus:ring-orange-200 focus:outline-none" />
                 </div>
                 <div class="mb-4">
-                    <label for="password" class="block text-sm font-medium text-gray-600">Пароль:</label>
-                    <input type="password" id="password" @bind="Password" placeholder="********" class="mt-1 w-full px-4 py-2 border rounded-md focus:ring focus:ring-orange-200 focus:outline-none" />
+                    <label for="loginPassword" class="block text-sm font-medium text-gray-600">Пароль:</label>
+                    <div class="relative">
+                        <input type="@PasswordInputType" id="loginPassword" @bind="Password" placeholder="********" class="mt-1 w-full px-4 py-2 border rounded-md focus:ring focus:ring-orange-200 focus:outline-none" />
+                        <button type="button" @onclick="TogglePasswordVisibility" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600">
+                            @if (IsPasswordVisible)
+                            {
+                                <span>🙈</span>
+                            }
+                            else
+                            {
+                                <span>👁️</span>
+                            }
+                        </button>
+                    </div>
                 </div>
                 <div class="flex items-center justify-between">
                     <button type="submit" class="bg-orange-500 text-white px-6 py-2 rounded hover:bg-orange-600">Вход</button>
+                    <button type="button" @onclick="NavigateToRegistrationPage" class="text-orange-500 hover:text-orange-600">Регистрация</button>
                 </div>
             </form>
         </div>
     </main>
-
 
     <div id="callbackModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden">
         <div class="bg-white p-6 rounded-lg shadow-lg w-96">
@@ -89,6 +101,9 @@
     private string Password { get; set; }
     private string ErrorMessage { get; set; }
 
+    private bool IsPasswordVisible { get; set; } = false;
+    private string PasswordInputType => IsPasswordVisible ? "text" : "password";
+
     private async Task HandleLogin()
     {
         try
@@ -117,4 +132,13 @@
 
     @inject IJSRuntime JSRuntime
 
+    private void NavigateToRegistrationPage()
+    {
+        NavigationManager.NavigateTo("/Regis");
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        IsPasswordVisible = !IsPasswordVisible;
+    }
 }

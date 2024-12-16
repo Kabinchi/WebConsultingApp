@@ -1,0 +1,37 @@
+﻿@page "/add"
+@using Microsoft.AspNetCore.Components.Forms
+@using WebConsulting.Models
+@using WebConsulting.Other
+@inject ServicesService ServicesService
+@inject NavigationManager NavigationManager
+
+@code {
+    private Service newService = new Service();
+
+    private async Task AddService()
+    {
+        await ServicesService.AddServiceAsync(newService);
+        NavigationManager.NavigateTo("/price");
+    }
+}
+
+<h3>Добавить новую услугу</h3>
+
+<EditForm Model="newService" OnValidSubmit="AddService">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div>
+        <label>Название</label>
+        <InputText @bind-Value="newService.Name" />
+    </div>
+    <div>
+        <label>Описание</label>
+        <InputTextArea @bind-Value="newService.Description" />
+    </div>
+    <div>
+        <label>Цена</label>
+        <InputNumber @bind-Value="newService.Price" />
+    </div>
+    <button type="submit">Добавить</button>
+</EditForm>

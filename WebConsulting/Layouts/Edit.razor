@@ -1,0 +1,44 @@
+﻿@page "/edit/{serviceId}"
+@using Microsoft.AspNetCore.Components.Forms
+@using WebConsulting.Models
+@using WebConsulting.Other
+@using WebConsulting.Other
+@inject ServicesService ServicesService
+@inject NavigationManager NavigationManager
+
+@code {
+    [Parameter] public int serviceId { get; set; }
+    private Service service;
+
+    protected override async Task OnInitializedAsync()
+    {
+        service = await ServicesService.GetServiceByIdAsync(serviceId);
+    }
+
+    private async Task SaveService()
+    {
+        await ServicesService.UpdateServiceAsync(service);
+        NavigationManager.NavigateTo("/price");
+    }
+}
+
+<h3>Редактирование услуги</h3>
+
+<EditForm Model="service" OnValidSubmit="SaveService">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div>
+        <label>Название</label>
+        <InputText @bind-Value="service.Name" />
+    </div>
+    <div>
+        <label>Описание</label>
+        <InputTextArea @bind-Value="service.Description" />
+    </div>
+    <div>
+        <label>Цена</label>
+        <InputNumber @bind-Value="service.Price" />
+    </div>
+    <button type="submit">Сохранить</button>
+</EditForm>
