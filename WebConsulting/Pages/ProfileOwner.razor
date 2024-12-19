@@ -1,4 +1,4 @@
-﻿@page "/pAdmin"
+﻿@page "/pOwner"
 @using Microsoft.EntityFrameworkCore
 @using WebConsulting.Models
 @inject ConsultingDBContext DbContext
@@ -11,7 +11,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Профиль администратора</title>
+    <title>Профиль главного администратора</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         html,
@@ -49,7 +49,7 @@
 <body class="bg-gray-100 text-gray-800">
     <nav class="bg-gray-800 text-white p-4">
         <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold">Панель Сотрудника</h1>
+            <h1 class="text-xl font-bold">Панель главного администратора</h1>
             <div>
                 <button @onclick="HandleLogout" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
                     Выйти
@@ -61,66 +61,46 @@
     <main class="container mx-auto py-8 px-4 lg:px-16 min-h-[calc(95%-64px)]">
         <div class="flex mt-8">
             <div class="w-1/4 p-4 bg-gray-200">
-                <button class="w-full py-2 mb-4 rounded @GetTabClass(isApplicationsTab)"
-                        @onclick="ShowApplicationsTab">
-                    Просмотр заявок
+                <button class="w-full py-2 mb-4 rounded @GetTabClass(isUsersTab)"
+                        @onclick="ShowUsersTab">
+                    Управление пользователями
                 </button>
-                <button class="w-full py-2 rounded @GetTabClass(!isApplicationsTab)"
+                <button class="w-full py-2 rounded @GetTabClass(!isUsersTab)"
                         @onclick="ShowProfileTab">
                     Профиль
                 </button>
             </div>
 
             <div class="w-3/4 p-4">
-                @if (isApplicationsTab)
+                @if (isUsersTab)
                 {
                     <div>
-                        <h2 class="text-xl font-bold text-gray-800 mb-4">Все заявки</h2>
-                        @if (applications == null || applications.Count == 0)
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">Все пользователи</h2>
+                        @if (users == null || users.Count == 0)
                         {
-                            <p class="text-gray-600">Нет активных заявок.</p>
+                            <p class="text-gray-600">Нет пользователей.</p>
                         }
                         else
                         {
                             <table class="table-auto w-full bg-white shadow-md rounded-lg">
                                 <thead class="bg-gray-200">
                                     <tr>
-                                        <th class="px-2 py-2 text-sm">Имя пользователя</th>
-                                        <th class="px-2 py-2 text-sm">Телефон</th>
+                                        <th class="px-2 py-2 text-sm">Имя</th>
                                         <th class="px-2 py-2 text-sm">Почта</th>
-                                        <th class="px-2 py-2 text-sm">Компания</th>
-                                        <th class="px-2 py-2 text-sm">Адрес</th>
-                                        <th class="px-2 py-2 text-sm">Описание</th>
-                                        <th class="px-2 py-2 text-sm">Услуга</th>
-                                        <th class="px-2 py-2 text-sm">Дата</th>
-                                        <th class="px-2 py-2 text-sm">Статус</th>
+                                        <th class="px-2 py-2 text-sm">Роль</th>
                                         <th class="px-2 py-2 text-sm">Действия</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var app in applications)
+                                    @foreach (var user in users)
                                     {
-                                        var userInfo = app.User;
                                         <tr>
-                                            <td class="border px-2 py-2 text-sm">@userInfo.FullName</td>
-                                            <td class="border px-2 py-2 text-sm">@userInfo.PhoneNumber</td>
-                                            <td class="border px-2 py-2 text-sm">@userInfo.Email</td>
-                                            <td class="border px-2 py-2 text-sm">@app.CompanyName</td>
-                                            <td class="border px-2 py-2 text-sm">@app.CompanyAddress</td>
-                                            <td class="border px-2 py-2 text-sm">@app.Description</td>
-                                            <td class="border px-2 py-2 text-sm">@app.Service?.Name</td>
-                                            <td class="border px-2 py-2 text-sm">@app.CreatedAt.ToString("dd.MM.yyyy")</td>
-                                            <td class="border px-2 py-2 text-sm @GetStatusClass(app.Status)">@app.Status</td>
+                                            <td class="border px-2 py-2 text-sm">@user.FullName</td>
+                                            <td class="border px-2 py-2 text-sm">@user.Email</td>
+                                            <td class="border px-2 py-2 text-sm">@user.Role</td>
                                             <td class="border px-2 py-2 text-sm">
-                                                <select @bind="app.Status" class="border px-2 py-1 rounded">
-                                                    <option value="В ожидании" selected="@IsStatusSelected(app.Status, "В ожидании")">В ожидании</option>
-                                                    <option value="Ожидайте звонок" selected="@IsStatusSelected(app.Status, "Ожидайте звонок")">Ожидайте звонок</option>
-                                                    <option value="Отказано" selected="@IsStatusSelected(app.Status, "Отказано, ожидайте звонок")">Отказано</option>
-                                                </select>
-                                            </td>
-                                            <td class="border px-2 py-2 text-sm">
-                                                <button @onclick="() => SaveStatus(app)" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                                                    Сохранить
+                                                <button @onclick="() => ChangeRole(user)" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                                                    Изменить роль
                                                 </button>
                                             </td>
                                         </tr>
@@ -133,11 +113,11 @@
                 else
                 {
                     <div class="bg-white p-6 shadow-md rounded-lg">
-                        <h2 class="text-xl font-bold text-gray-800 mb-4">Профиль администратора</h2>
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">Профиль главного администратора</h2>
                         <div class="mb-4">
                             <label for="fullName" class="block text-sm font-medium text-gray-700">Имя</label>
                             <input type="text" id="fullName" class="mt-1 block w-full p-2 border border-gray-300 rounded"
-                                   @bind="user.FullName" @bind:event="oninput" disabled="@isFullNameDisabled" />
+                                   @bind="admin.FullName" @bind:event="oninput" disabled="@isFullNameDisabled" />
                             <button @onclick="ToggleFullNameEdit" class="text-blue-500 mt-2">
                                 @if (isFullNameDisabled)
                                 {
@@ -153,7 +133,7 @@
                         <div class="mb-4">
                             <label for="phone" class="block text-sm font-medium text-gray-700">Телефон</label>
                             <input type="text" id="phone" class="mt-1 block w-full p-2 border border-gray-300 rounded"
-                                   @bind="user.PhoneNumber" @bind:event="oninput" disabled="@isPhoneDisabled" />
+                                   @bind="admin.PhoneNumber" @bind:event="oninput" disabled="@isPhoneDisabled" />
                             <button @onclick="TogglePhoneEdit" class="text-blue-500 mt-2" @oninput="ValidatePhoneNumber">
                                 @if (isPhoneDisabled)
                                 {
@@ -173,7 +153,7 @@
                         <div class="mb-4">
                             <label for="email" class="block text-sm font-medium text-gray-700">Почта</label>
                             <input type="email" id="email" class="mt-1 block w-full p-2 border border-gray-300 rounded"
-                                   @bind="user.Email" disabled />
+                                   @bind="admin.Email" disabled />
                         </div>
 
                         @if (!isFullNameDisabled || !isPhoneDisabled)
@@ -192,50 +172,30 @@
 </html>
 
 @code {
-    private bool isApplicationsTab = true;
+    private bool isUsersTab = true;
     private bool isFullNameDisabled = true;
     private bool isPhoneDisabled = true;
-    private List<Application> applications;
-    private User user;
+    private List<User> users;
+    private User admin;
     private string phoneError = string.Empty;
-
-    private void ValidatePhoneNumber(ChangeEventArgs e)
-    {
-        var input = e.Value?.ToString() ?? string.Empty;
-
-        var phoneRegex = @"^(?:\+7|8)\d{10}$";
-        if (System.Text.RegularExpressions.Regex.IsMatch(input, phoneRegex))
-        {
-            phoneError = string.Empty; 
-        }
-        else
-        {
-            phoneError = "Номер телефона должен быть в формате +7XXXXXXXXXX или 8XXXXXXXXXX.";
-        }
-    }
-
-    private string GetTabClass(bool isActive) => isActive ? "bg-blue-500 text-white" : "bg-gray-300 text-gray-800";
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            applications = await DbContext.Applications
-                                          .Include(a => a.User)
-                                          .Include(a => a.Service)
-                                          .ToListAsync();
+            users = await DbContext.Users.ToListAsync();
 
-            user = await DbContext.Users.FirstOrDefaultAsync(u => u.Role == "Admin") ?? new User();
+            admin = await DbContext.Users.FirstOrDefaultAsync(u => u.Role == "Owner") ?? new User();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Ошибка при загрузке данных: {ex.Message}");
-            applications = new List<Application>();
+            users = new List<User>();
         }
     }
 
-    private void ShowApplicationsTab() => isApplicationsTab = true;
-    private void ShowProfileTab() => isApplicationsTab = false;
+    private void ShowUsersTab() => isUsersTab = true;
+    private void ShowProfileTab() => isUsersTab = false;
 
     private void ToggleFullNameEdit() => isFullNameDisabled = !isFullNameDisabled;
     private void TogglePhoneEdit() => isPhoneDisabled = !isPhoneDisabled;
@@ -250,7 +210,7 @@
 
         try
         {
-            DbContext.Users.Update(user);
+            DbContext.Users.Update(admin);
             await DbContext.SaveChangesAsync();
             await JSRuntime.InvokeVoidAsync("alert", "Изменения успешно сохранены!");
         }
@@ -266,31 +226,38 @@
         }
     }
 
-
-    private async Task SaveStatus(Application app)
+    private async Task ChangeRole(User user)
     {
+        user.Role = user.Role == "User" ? "Admin" : "User"; 
+
         try
         {
-            DbContext.Applications.Update(app);
+            DbContext.Users.Update(user);
             await DbContext.SaveChangesAsync();
-            await JSRuntime.InvokeVoidAsync("alert", "Статус заявки обновлен!");
+            await JSRuntime.InvokeVoidAsync("alert", "Роль пользователя успешно обновлена!");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка при сохранении статуса: {ex.Message}");
-            await JSRuntime.InvokeVoidAsync("alert", "Произошла ошибка при сохранении!");
+            Console.WriteLine($"Ошибка при изменении роли: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", "Произошла ошибка при изменении роли!");
         }
     }
 
-    private bool IsStatusSelected(string currentStatus, string optionStatus) => currentStatus == optionStatus;
-    private string GetStatusClass(string status) => status switch
+    private string GetTabClass(bool isActive) => isActive ? "bg-blue-500 text-white" : "bg-gray-300 text-gray-800";
+
+    private void ValidatePhoneNumber(ChangeEventArgs e)
     {
-        "Ожидайте звонок" => "text-green-500",
-        "Отказано" => "text-red-500",
-        "Отказано, ожидайте звонок" => "text-yellow-500",
-        "В ожидании" => "text-orange-500",
-        _ => "text-gray-500",
-    };
+        var input = e.Value?.ToString() ?? string.Empty;
+        var phoneRegex = @"^(?:\+7|8)\d{10}$";
+        if (System.Text.RegularExpressions.Regex.IsMatch(input, phoneRegex))
+        {
+            phoneError = string.Empty;
+        }
+        else
+        {
+            phoneError = "Номер телефона должен быть в формате +7XXXXXXXXXX или 8XXXXXXXXXX.";
+        }
+    }
 
     private async Task HandleLogout()
     {

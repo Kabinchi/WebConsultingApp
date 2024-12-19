@@ -9,6 +9,7 @@ builder.Services.AddSingleton<IEmailService, EmailService>();
 
 builder.Services.AddDbContext<ConsultingDBContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<UserService>();
 
 builder.Services.AddScoped<ServicesService>();
 

@@ -14,6 +14,8 @@ public partial class Application
     public int Id { get; set; }
 
     public int UserId { get; set; }
+    public string CompanyName { get; set; }
+    public string CompanyAddress { get; set; }
 
     [Required]
     public string Description { get; set; }

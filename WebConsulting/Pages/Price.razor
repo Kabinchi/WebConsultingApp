@@ -2,13 +2,9 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using WebConsulting.Models
 @using WebConsulting.Other
-@using Microsoft.AspNetCore.Components.Forms
-@using WebConsulting.Models
-@using WebConsulting.Other
 @inject ServicesService ServicesService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
-
 @code {
     private List<Service> services;
     private bool IsAdmin { get; set; }
@@ -25,7 +21,7 @@
     }
 
     private IEnumerable<IGrouping<string, Service>> GroupedServices =>
-    services?.GroupBy(s => s.Category);
+        services?.GroupBy(s => s.Category);
 
     private async Task DeleteService(int serviceId)
     {
@@ -35,10 +31,9 @@
 
     private void ShowAddModal()
     {
-        newService = new Service(); 
+        newService = new Service();
         showAddModal = true;
     }
-
 
     private void CloseAddModal()
     {
@@ -60,32 +55,27 @@
     {
         await ServicesService.AddServiceAsync(newService);
         services = await ServicesService.GetAllServicesAsync();
-        showAddModal = false; 
-
-        newService = new Service(); 
+        showAddModal = false;
+        newService = new Service();
     }
-
 
     private async Task SaveService()
     {
+        // Обновление данных в базе
         await ServicesService.UpdateServiceAsync(editingService);
         services = await ServicesService.GetAllServicesAsync();
-        showEditModal = false; 
+        showEditModal = false;
     }
 }
-
 <!DOCTYPE html>
 <html lang="ru">
-
 <body class="font-sans bg-gray-50 text-gray-800">
-
     <section class="bg-gray-100 py-12">
         <div class="container mx-auto px-6">
             <h1 class="text-3xl font-semibold text-gray-800">Прайс-лист на услуги</h1>
             <p class="mt-4 text-gray-600">Базовые тарифы на услуги компании Business Aid.</p>
         </div>
     </section>
-
     <section class="container mx-auto px-6 my-12">
         @if (services == null)
         {
@@ -119,14 +109,12 @@
             }
         }
     </section>
-
     @if (IsAdmin)
     {
         <section class="text-center py-6">
             <button class="bg-green-500 text-white py-2 px-6 rounded hover:bg-green-600" @onclick="ShowAddModal">Добавить услугу</button>
         </section>
     }
-
     @if (showAddModal)
     {
         <div class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
@@ -135,7 +123,6 @@
                 <EditForm Model="newService" OnValidSubmit="AddService">
                     <DataAnnotationsValidator />
                     <ValidationSummary />
-
                     <div>
                         <label>Название</label>
                         <InputText @bind-Value="newService.Name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
@@ -152,7 +139,6 @@
                         <label>Категория</label>
                         <InputText @bind-Value="newService.Category" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
                     </div>
-
                     <div class="flex justify-end space-x-4 mt-4">
                         <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" @onclick="CloseAddModal">Отмена</button>
                         <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">Добавить</button>
@@ -161,8 +147,6 @@
             </div>
         </div>
     }
-
-
     @if (showEditModal)
     {
         <div class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
@@ -171,7 +155,6 @@
                 <EditForm Model="editingService" OnValidSubmit="SaveService">
                     <DataAnnotationsValidator />
                     <ValidationSummary />
-
                     <div>
                         <label>Название</label>
                         <InputText @bind-Value="editingService.Name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
@@ -188,7 +171,6 @@
                         <label>Категория</label>
                         <InputText @bind-Value="editingService.Category" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
                     </div>
-
                     <div class="flex justify-end space-x-4 mt-4">
                         <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" @onclick="CloseEditModal">Отмена</button>
                         <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">Сохранить</button>
@@ -197,7 +179,5 @@
             </div>
         </div>
     }
-
-
 </body>
 </html>

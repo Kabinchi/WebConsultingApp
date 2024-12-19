@@ -1,14 +1,15 @@
 ﻿@page "/pUser"
+@using WebConsulting.Models
+@inject UserService UserService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Профиль пользователя | Reputation</title>
+    <title>Профиль пользователя</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         html, body {
@@ -25,31 +26,242 @@
         main {
             flex-grow: 1;
         }
+
+        footer {
+            background-color: #f3f4f6;
+            padding: 20px 0;
+            text-align: center;
+        }
     </style>
 </head>
 
 <body class="bg-gray-100 text-gray-800">
     <main class="container mx-auto py-8 px-4 lg:px-16 min-h-[calc(95%-64px)]">
-        <div class="bg-white p-8 shadow-lg rounded-lg max-w-md mx-auto">
-            <h1 class="text-2xl font-bold text-gray-800 mb-6">Пользователь панель</h1>
-            <button @onclick="Logout" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Выйти</button>
+        <h1 class="text-2xl font-bold text-gray-800 mb-6">Профиль пользователя</h1>
+
+        <div class="flex">
+            <div class="w-1/4 p-4 bg-gray-200">
+                <button class="w-full py-2 mb-4 rounded @GetTabClass(isProfileTab)"
+                        @onclick="ShowProfileTab">
+                    Профиль
+                </button>
+                <button class="w-full py-2 mb-4 rounded @GetTabClass(!isProfileTab)"
+                        @onclick="ShowApplicationsTab">
+                    Просмотр заявок
+                </button>
+                <button class="w-full py-2 mb-4 bg-yellow-500 text-white rounded">Здесь пока ничего</button>
+            </div>
+
+            <div class="w-3/4 p-4">
+                @if (user != null)
+                {
+                    @if (isProfileTab)
+                    {
+                        <div class="bg-white p-6 shadow-md rounded-lg">
+                            <div class="mb-4">
+                                <label for="fullName" class="block text-sm font-medium text-gray-700">Имя</label>
+                                <input type="text" id="fullName" class="mt-1 block w-full p-2 border border-gray-300 rounded"
+                                       @bind="user.FullName" @bind:event="oninput" disabled="@isFullNameDisabled" />
+                                <button @onclick="ToggleFullNameEdit" class="text-blue-500 mt-2">
+                                    @if (isFullNameDisabled)
+                                    {
+                                        <span>Редактировать</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Отменить</span>
+                                    }
+                                </button>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="phone" class="block text-sm font-medium text-gray-700">Телефон</label>
+                                <input type="text" id="phone" class="mt-1 block w-full p-2 border border-gray-300 rounded"
+                                       @bind="user.PhoneNumber" @bind:event="oninput" disabled="@isPhoneDisabled" />
+                                <button @onclick="TogglePhoneEdit" class="text-blue-500 mt-2">
+                                    @if (isPhoneDisabled)
+                                    {
+                                        <span>Редактировать</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Отменить</span>
+                                    }
+                                </button>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="email" class="block text-sm font-medium text-gray-700">Почта</label>
+                                <input type="email" id="email" class="mt-1 block w-full p-2 border border-gray-300 rounded"
+                                       @bind="user.Email" disabled />
+                            </div>
+
+                            @if (!isFullNameDisabled || !isPhoneDisabled)
+                            {
+                                <button @onclick="SaveChanges" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                                    Сохранить изменения
+                                </button>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-800 mb-4">Ваши заявки</h2>
+                            @if (applications == null || applications.Count == 0)
+                            {
+                                <p class="text-gray-600">У вас нет активных заявок.</p>
+                            }
+                            else
+                            {
+                                <table class="table-auto w-full bg-white shadow-md rounded-lg">
+                                    <thead class="bg-gray-200">
+                                        <tr>
+                                            <th class="px-4 py-2">Имя пользователя</th>
+                                            <th class="px-4 py-2">Телефон</th>
+                                            <th class="px-4 py-2">Почта</th>
+                                            <th class="px-4 py-2">Название компании</th>
+                                            <th class="px-4 py-2">Адрес компании</th>
+                                            <th class="px-4 py-2">Описание</th>
+                                            <th class="px-4 py-2">Услуга</th>
+                                            <th class="px-4 py-2">Дата создания</th>
+                                            <th class="px-4 py-2">Статус</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var app in applications)
+                                        {
+                                            var userInfo = app.User;
+                                            <tr>
+                                                <td class="border px-4 py-2">@userInfo.FullName</td>
+                                                <td class="border px-4 py-2">@userInfo.PhoneNumber</td>
+                                                <td class="border px-4 py-2">@userInfo.Email</td>
+                                                <td class="border px-4 py-2">@app.CompanyName</td>
+                                                <td class="border px-4 py-2">@app.CompanyAddress</td>
+                                                <td class="border px-4 py-2">@app.Description</td>
+                                                <td class="border px-4 py-2">@app.Service?.Name</td>
+                                                <td class="border px-4 py-2">@app.CreatedAt.ToString("dd.MM.yyyy")</td>
+                                                <td class="border px-4 py-2 @GetStatusClass(app.Status)">@app.Status</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p>Загрузка данных пользователя...</p>
+                }
+
+                <button @onclick="Logout" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Выйти</button>
+            </div>
         </div>
     </main>
+
 </body>
 
 </html>
 
 @code {
-    private async Task Logout()
+    private User user;
+    private bool isFullNameDisabled = true;
+    private bool isPhoneDisabled = true;
+
+    private bool isProfileTab = true;
+    private List<Application> applications;
+
+    protected override async Task OnInitializedAsync()
     {
         try
         {
-            await JSRuntime.InvokeVoidAsync("sessionStorage.removeItem", "userRole");
-            NavigationManager.NavigateTo("/");
+            var userId = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "userId");
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new Exception("Не удалось найти пользователя в сессии.");
+            }
+
+            var userIdInt = int.Parse(userId);
+            user = UserService.GetUserById(userIdInt);
+            if (user == null)
+            {
+                throw new Exception("Пользователь не найден.");
+            }
+
+            applications = await UserService.GetApplicationsByUserId(userIdInt) ?? new List<Application>();
+
+            foreach (var app in applications)
+            {
+                if (app.User == null)
+                {
+                    app.User = UserService.GetUserById(app.UserId);
+                }
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка при выходе из аккаунта: {ex.Message}");
+            Console.WriteLine($"Ошибка при загрузке данных: {ex.Message}");
+            user = null;
+            applications = new List<Application>();
         }
+    }
+
+    private void ShowProfileTab()
+    {
+        isProfileTab = true;
+    }
+
+    private void ShowApplicationsTab()
+    {
+        isProfileTab = false;
+    }
+
+    private string GetTabClass(bool isActive)
+    {
+        return isActive ? "bg-blue-500 text-white" : "bg-gray-300 text-gray-800";
+    }
+
+    private void ToggleFullNameEdit()
+    {
+        isFullNameDisabled = !isFullNameDisabled;
+    }
+
+    private void TogglePhoneEdit()
+    {
+        isPhoneDisabled = !isPhoneDisabled;
+    }
+
+    private async Task SaveChanges()
+    {
+        try
+        {
+            await UserService.UpdateUser(user);
+            isFullNameDisabled = true;
+            isPhoneDisabled = true;
+            await JSRuntime.InvokeVoidAsync("alert", "Изменения сохранены успешно!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка при сохранении данных: {ex.Message}");
+        }
+    }
+
+    private async Task Logout()
+    {
+        await JSRuntime.InvokeVoidAsync("sessionStorage.removeItem", "userRole");
+        NavigationManager.NavigateTo("/");
+    }
+
+    private string GetStatusClass(string status)
+    {
+        return status switch
+        {
+            "Ожидайте звонок" => "text-green-500",
+            "Отказано" => "text-red-500",
+            "Отказано, ожидайте звонок" => "text-red-500",
+            _ => "text-yellow-500",
+        };
     }
 }

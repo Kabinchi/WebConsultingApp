@@ -1,6 +1,7 @@
 ﻿@page "/Registration"
 @using WebConsulting.Models
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
 <!DOCTYPE html>
 <html lang="en">
@@ -30,19 +31,24 @@
 </head>
 
 <body class="bg-gray-100 text-gray-800">
-
     <main class="container mx-auto py-8 px-4 lg:px-16 min-h-[calc(95%-64px)]">
         <div class="bg-white p-8 shadow-lg rounded-lg max-w-md mx-auto">
             <h1 class="text-2xl font-bold text-gray-800 mb-6">Авторизация</h1>
             <form @onsubmit="HandleLogin">
                 <div class="mb-4">
                     <label for="loginEmail" class="block text-sm font-medium text-gray-600">E-mail:</label>
-                    <input type="email" id="loginEmail" @bind="Email" placeholder="sample@domain.ru" class="mt-1 w-full px-4 py-2 border rounded-md focus:ring focus:ring-orange-200 focus:outline-none" />
+                    <input type="email" id="loginEmail" @bind="Email" placeholder="sample@mail.ru"
+                           class="mt-1 w-full px-4 py-2 border rounded-md focus:ring focus:ring-orange-200 focus:outline-none" />
+                    @if (!string.IsNullOrEmpty(EmailError))
+                    {
+                        <p class="text-red-500 text-sm mt-1">@EmailError</p>
+                    }
                 </div>
                 <div class="mb-4">
                     <label for="loginPassword" class="block text-sm font-medium text-gray-600">Пароль:</label>
                     <div class="relative">
-                        <input type="@PasswordInputType" id="loginPassword" @bind="Password" placeholder="********" class="mt-1 w-full px-4 py-2 border rounded-md focus:ring focus:ring-orange-200 focus:outline-none" />
+                        <input type="@PasswordInputType" id="loginPassword" @bind="Password" placeholder="********"
+                               class="mt-1 w-full px-4 py-2 border rounded-md focus:ring focus:ring-orange-200 focus:outline-none" />
                         <button type="button" @onclick="TogglePasswordVisibility" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600">
                             @if (IsPasswordVisible)
                             {
@@ -54,7 +60,15 @@
                             }
                         </button>
                     </div>
+                    @if (!string.IsNullOrEmpty(PasswordError))
+                    {
+                        <p class="text-red-500 text-sm mt-1">@PasswordError</p>
+                    }
                 </div>
+                @if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <p class="text-red-500 text-sm mt-1">@ErrorMessage</p>
+                }
                 <div class="flex items-center justify-between">
                     <button type="submit" class="bg-orange-500 text-white px-6 py-2 rounded hover:bg-orange-600">Вход</button>
                     <button type="button" @onclick="NavigateToRegistrationPage" class="text-orange-500 hover:text-orange-600">Регистрация</button>
@@ -62,50 +76,53 @@
             </form>
         </div>
     </main>
-
-    <div id="callbackModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden">
-        <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Перезвонить</h3>
-            <form action="#" method="POST" class="space-y-4">
-                <div>
-                    <label for="name" class="block text-gray-600">Имя</label>
-                    <input type="text" id="name" name="name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
-                </div>
-                <div>
-                    <label for="phone" class="block text-gray-600">Номер телефона</label>
-                    <input type="tel" id="phone" name="phone" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
-                </div>
-                <div class="flex justify-end space-x-4">
-                    <button type="button" onclick="closeCallbackModal();" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Отмена</button>
-                    <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">Отправить</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        function openCallbackModal() {
-            document.getElementById('callbackModal').classList.remove('hidden');
-        }
-
-        function closeCallbackModal() {
-            document.getElementById('callbackModal').classList.add('hidden');
-        }
-    </script>
 </body>
 
 </html>
 
 @code {
+
     private string Email { get; set; }
     private string Password { get; set; }
     private string ErrorMessage { get; set; }
-
+    private string EmailError { get; set; }
+    private string PasswordError { get; set; }
     private bool IsPasswordVisible { get; set; } = false;
+
     private string PasswordInputType => IsPasswordVisible ? "text" : "password";
 
     private async Task HandleLogin()
     {
+        // Сброс ошибок
+        EmailError = string.Empty;
+        PasswordError = string.Empty;
+        ErrorMessage = string.Empty;
+
+        // Проверка на заполненность полей
+        if (string.IsNullOrEmpty(Email))
+        {
+            EmailError = "E-mail обязателен";
+            return;
+        }
+
+        if (!IsValidEmail(Email))
+        {
+            EmailError = "E-mail должен быть в домене mail.ru";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(Password))
+        {
+            PasswordError = "Пароль обязателен";
+            return;
+        }
+
+        if (!IsValidPassword(Password))
+        {
+            PasswordError = "Пароль должен содержать хотя бы одну заглавную букву, цифру, специальный символ и только английские буквы.";
+            return;
+        }
+
         try
         {
             using var context = new ConsultingDBContext();
@@ -115,7 +132,7 @@
             {
                 await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", "userRole", user.Role);
                 await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", "userSession", user.Email);
-
+                await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", "userId", user.Id);
                 NavigationManager.NavigateTo("/");
             }
             else
@@ -130,15 +147,28 @@
         }
     }
 
-    @inject IJSRuntime JSRuntime
+    private void TogglePasswordVisibility()
+    {
+        IsPasswordVisible = !IsPasswordVisible;
+    }
 
     private void NavigateToRegistrationPage()
     {
         NavigationManager.NavigateTo("/Regis");
     }
 
-    private void TogglePasswordVisibility()
+    private bool IsValidEmail(string email)
     {
-        IsPasswordVisible = !IsPasswordVisible;
+        return email.EndsWith("@mail.ru", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsValidPassword(string password)
+    {
+        bool hasUpperCase = password.Any(char.IsUpper);
+        bool hasDigit = password.Any(char.IsDigit);
+        bool hasSpecialChar = password.Any(c => !char.IsLetterOrDigit(c));
+        bool isEnglishOnly = password.Where(char.IsLetter).All(c => (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'));
+
+        return hasUpperCase && hasDigit && hasSpecialChar && isEnglishOnly;
     }
 }

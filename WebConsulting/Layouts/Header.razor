@@ -2,6 +2,7 @@
     private bool ShowRegistrationButton { get; set; } = true;
     private bool ShowAdminProfile { get; set; } = false;
     private bool ShowUserProfile { get; set; } = false;
+    private bool ShowOwnerProfile { get; set; } = false; // Добавляем флаг для роли Owner
 
     public async Task UpdateUserState()
     {
@@ -19,6 +20,10 @@
                 {
                     ShowUserProfile = true;
                 }
+                else if (userRole == "Owner") // Проверка для роли Owner
+                {
+                    ShowOwnerProfile = true;
+                }
                 ShowRegistrationButton = false;
             }
             else
@@ -26,6 +31,7 @@
                 ShowRegistrationButton = true;
                 ShowAdminProfile = false;
                 ShowUserProfile = false;
+                ShowOwnerProfile = false; // Если пользователь не авторизован
             }
 
             StateHasChanged();
@@ -60,6 +66,7 @@
     [Inject] NavigationManager NavigationManager { get; set; }
 }
 
+
 <header class="bg-white shadow-md">
     <div class="container mx-auto flex items-center justify-between p-4">
         <a href="/" class="text-2xl font-bold text-orange-500">Reputation</a>
@@ -76,12 +83,17 @@
 
             @if (ShowAdminProfile)
             {
-                <a href="/pAdmin" class="hover:text-orange-500">Профиль</a>
+                <a href="/pAdmin" class="hover:text-orange-500">Профиль Администратора</a>
             }
 
             @if (ShowUserProfile)
             {
-                <a href="/pUser" class="hover:text-orange-500">Профиль</a>
+                <a href="/pUser" class="hover:text-orange-500">Профиль Пользователя</a>
+            }
+
+            @if (ShowOwnerProfile)  
+            {
+                <a href="/pOwner" class="hover:text-orange-500">Профиль</a>
             }
         </nav>
         <div class="text-sm">
@@ -90,3 +102,4 @@
         </div>
     </div>
 </header>
+

@@ -25,6 +25,7 @@ public partial class User
     [Required]
     [StringLength(255)]
     public string Password { get; set; }
+    public string PhoneNumber { get; set; }
 
     [Required]
     [StringLength(20)]

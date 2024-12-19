@@ -1,4 +1,5 @@
 ﻿@page "/Regis"
+@using Microsoft.EntityFrameworkCore
 @using WebConsulting.Models
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
@@ -94,29 +95,74 @@
 
     private async Task HandleRegistration()
     {
-        if (ConfirmationCode == GeneratedCode)
+        if (string.IsNullOrEmpty(FullName) || string.IsNullOrEmpty(Email) || string.IsNullOrEmpty(Password) || string.IsNullOrEmpty(ConfirmationCode))
         {
-            using var context = new ConsultingDBContext();
-            var user = new User
-                {
-                    FullName = FullName,
-                    Email = Email,
-                    Password = Password,
-                    Role = "User"
-                };
-            context.Users.Add(user);
-            await context.SaveChangesAsync();
-
-            NavigationManager.NavigateTo("/");
+            ErrorMessage = "Все поля должны быть заполнены.";
+            return;
         }
-        else
+
+        if (!Email.EndsWith("@mail.ru"))
+        {
+            ErrorMessage = "Допустимы только почтовые адреса mail.ru.";
+            return;
+        }
+
+        if (!IsValidPassword(Password))
+        {
+            ErrorMessage = "Пароль должен содержать хотя бы одну заглавную букву, цифру, специальный символ и быть составлен из английских букв.";
+            return;
+        }
+
+        if (ConfirmationCode != GeneratedCode)
         {
             ErrorMessage = "Неверный код подтверждения.";
+            return;
         }
+
+        var user = new User
+            {
+                FullName = FullName,
+                Email = Email,
+                Password = Password,
+                Role = "User"
+            };
+        using var context = new ConsultingDBContext();
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+
+        NavigationManager.NavigateTo("/");
+
+        ErrorMessage = string.Empty;
     }
 
     private async Task SendConfirmationCode()
     {
+        if (string.IsNullOrEmpty(FullName) || string.IsNullOrEmpty(Email) || string.IsNullOrEmpty(Password))
+        {
+            ErrorMessage = "Все поля должны быть заполнены для запроса кода подтверждения.";
+            return;
+        }
+
+        using var context = new ConsultingDBContext();
+        var existingUser = await context.Users.FirstOrDefaultAsync(u => u.Email == Email);
+        if (existingUser != null)
+        {
+            ErrorMessage = "Пользователь с таким email уже существует.";
+            return;
+        }
+
+        if (!Email.EndsWith("@mail.ru"))
+        {
+            ErrorMessage = "Допустимы только почтовые адреса mail.ru.";
+            return;
+        }
+
+        if (!IsValidPassword(Password))
+        {
+            ErrorMessage = "Пароль должен содержать хотя бы одну заглавную букву, цифру, специальный символ и быть составлен из английских букв.";
+            return;
+        }
+
         GeneratedCode = GenerateConfirmationCode();
 
         var isCodeSent = await EmailService.SendConfirmationCodeAsync(Email, GeneratedCode);
@@ -141,4 +187,15 @@
     {
         IsPasswordVisible = !IsPasswordVisible;
     }
+
+    private bool IsValidPassword(string password)
+    {
+        bool hasUpperCase = password.Any(char.IsUpper);
+        bool hasDigit = password.Any(char.IsDigit);
+        bool hasSpecialChar = password.Any(c => !char.IsLetterOrDigit(c));
+        bool isEnglishOnly = password.Where(char.IsLetter).All(c => (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'));
+
+        return hasUpperCase && hasDigit && hasSpecialChar && isEnglishOnly;
+    }
+
 }
