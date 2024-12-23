@@ -5,19 +5,70 @@
 @inject ServicesService ServicesService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject ConsultingDBContext DbContext
+
 @code {
+
     private List<Service> services;
     private bool IsAdmin { get; set; }
     private Service newService = new Service();
     private Service editingService = new Service();
+    private Application newApplication = new Application
+        {
+            Status = "В ожидании"
+        };
+
+
     private bool showAddModal = false;
     private bool showEditModal = false;
+    private bool isUserAuthenticated = false;
+    private string UserRole { get; set; }
+    private string currentUserRole = "Client";
 
     protected override async Task OnInitializedAsync()
     {
         services = await ServicesService.GetAllServicesAsync();
         var userRole = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "userRole");
-        IsAdmin = userRole == "Admin";
+
+        if (!string.IsNullOrEmpty(userRole))
+        {
+            isUserAuthenticated = true;
+            IsAdmin = userRole == "Admin";
+            UserRole = userRole;
+        }
+    }
+
+    private async Task AddApplication()
+    {
+        if (string.IsNullOrEmpty(newApplication.Status))
+        {
+            newApplication.Status = "В ожидании";
+        }
+
+        newApplication.CreatedAt = DateTime.Now;
+
+        newApplication.UserId = int.Parse(await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "userId"));
+
+        if (string.IsNullOrEmpty(newApplication.Description) || newApplication.UserId == 0 || string.IsNullOrEmpty(newApplication.Status))
+        {
+            Console.WriteLine("Ошибка: описание или статус заявки не могут быть пустыми.");
+            return;
+        }
+
+        await SaveApplication(newApplication);
+
+        newApplication = new Application();
+    }
+
+    public async Task SaveApplication(Application application)
+    {
+        if (string.IsNullOrEmpty(application.Status))
+        {
+            application.Status = "В ожидании";
+        }
+
+        await DbContext.Applications.AddAsync(application);
+        await DbContext.SaveChangesAsync();
     }
 
     private IEnumerable<IGrouping<string, Service>> GroupedServices =>
@@ -61,21 +112,26 @@
 
     private async Task SaveService()
     {
-        // Обновление данных в базе
         await ServicesService.UpdateServiceAsync(editingService);
         services = await ServicesService.GetAllServicesAsync();
         showEditModal = false;
     }
+
+    private bool ShowUserForm => isUserAuthenticated && UserRole == "User";
 }
+
 <!DOCTYPE html>
 <html lang="ru">
+
 <body class="font-sans bg-gray-50 text-gray-800">
+
     <section class="bg-gray-100 py-12">
         <div class="container mx-auto px-6">
             <h1 class="text-3xl font-semibold text-gray-800">Прайс-лист на услуги</h1>
             <p class="mt-4 text-gray-600">Базовые тарифы на услуги компании Business Aid.</p>
         </div>
     </section>
+
     <section class="container mx-auto px-6 my-12">
         @if (services == null)
         {
@@ -109,12 +165,66 @@
             }
         }
     </section>
+
+    @if (ShowUserForm)
+    {
+        <section class="container mx-auto px-6 py-8 bg-white shadow-md rounded-md">
+            <h2 class="text-xl font-semibold text-gray-800">Форма для компании</h2>
+            <EditForm Model="newApplication" OnValidSubmit="AddApplication">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div>
+                    <label for="companyName" class="block text-sm font-medium text-gray-700">Название компании</label>
+                    <InputText id="companyName" @bind-Value="newApplication.CompanyName" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                </div>
+
+                <div class="mt-4">
+                    <label for="companyAddress" class="block text-sm font-medium text-gray-700">Адрес компании</label>
+                    <InputText id="companyAddress" @bind-Value="newApplication.CompanyAddress" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                </div>
+
+                <div class="mt-4">
+                    <label for="description" class="block text-sm font-medium text-gray-700">Описание заявки</label>
+                    <InputTextArea id="description" @bind-Value="newApplication.Description" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                </div>
+
+                <div class="mt-4">
+                    <label for="service" class="block text-sm font-medium text-gray-700">Выберите услугу</label>
+                    <select id="service" @bind="newApplication.ServiceId" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <option value="">Выберите услугу</option>
+                        @foreach (var service in services)
+                        {
+                            <option value="@service.Id">@service.Name - @service.FormattedPrice</option>
+                        }
+                    </select>
+                </div>
+
+                @if (currentUserRole == "Admin")
+                {
+                    <div class="mt-4">
+                        <label for="status" class="block text-sm font-medium text-gray-700">Статус заявки</label>
+                        <InputText id="status" @bind-Value="newApplication.Status" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                    </div>
+                }
+
+
+                <div class="flex justify-end space-x-4 mt-4">
+                    <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" @onclick="CloseAddModal">Отмена</button>
+                    <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">Добавить</button>
+                </div>
+            </EditForm>
+        </section>
+    }
+
+
     @if (IsAdmin)
     {
         <section class="text-center py-6">
             <button class="bg-green-500 text-white py-2 px-6 rounded hover:bg-green-600" @onclick="ShowAddModal">Добавить услугу</button>
         </section>
     }
+
     @if (showAddModal)
     {
         <div class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
@@ -141,12 +251,13 @@
                     </div>
                     <div class="flex justify-end space-x-4 mt-4">
                         <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" @onclick="CloseAddModal">Отмена</button>
-                        <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">Добавить</button>
+                        <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">Сохранить</button>
                     </div>
                 </EditForm>
             </div>
         </div>
     }
+
     @if (showEditModal)
     {
         <div class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
@@ -179,5 +290,7 @@
             </div>
         </div>
     }
+
+
 </body>
 </html>

@@ -2,7 +2,7 @@
     private bool ShowRegistrationButton { get; set; } = true;
     private bool ShowAdminProfile { get; set; } = false;
     private bool ShowUserProfile { get; set; } = false;
-    private bool ShowOwnerProfile { get; set; } = false; // Добавляем флаг для роли Owner
+    private bool ShowOwnerProfile { get; set; } = false;
 
     public async Task UpdateUserState()
     {
@@ -20,7 +20,7 @@
                 {
                     ShowUserProfile = true;
                 }
-                else if (userRole == "Owner") // Проверка для роли Owner
+                else if (userRole == "Owner")
                 {
                     ShowOwnerProfile = true;
                 }
@@ -31,7 +31,7 @@
                 ShowRegistrationButton = true;
                 ShowAdminProfile = false;
                 ShowUserProfile = false;
-                ShowOwnerProfile = false; // Если пользователь не авторизован
+                ShowOwnerProfile = false;
             }
 
             StateHasChanged();
@@ -83,12 +83,12 @@
 
             @if (ShowAdminProfile)
             {
-                <a href="/pAdmin" class="hover:text-orange-500">Профиль Администратора</a>
+                <a href="/pAdmin" class="hover:text-orange-500">Профиль</a>
             }
 
             @if (ShowUserProfile)
             {
-                <a href="/pUser" class="hover:text-orange-500">Профиль Пользователя</a>
+                <a href="/pUser" class="hover:text-orange-500">Профиль</a>
             }
 
             @if (ShowOwnerProfile)  
