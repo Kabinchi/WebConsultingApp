@@ -20,15 +20,13 @@ public partial class Service
     [Required]
     public string Description { get; set; }
 
-    [Required]
-    public int Price { get; set; }
-    [Required]
+    public int? Price { get; set; }
+
     [StringLength(100)]
     public string Category { get; set; }
 
-    public string FormattedPrice => $"от {Price:n0} р."; 
-
+    public string FormattedPrice => Price.HasValue ? $"от {Price.Value:n0} р." : "Цена не указана";
 
     [InverseProperty("Service")]
-    public virtual ICollection<Application> Applications { get; set; } = new List<Application>();
+    public virtual ICollection<ApplicationService> ApplicationServices { get; set; } = new List<ApplicationService>();
 }

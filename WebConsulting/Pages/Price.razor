@@ -8,76 +8,163 @@
 @inject ConsultingDBContext DbContext
 
 @code {
-
     private List<Service> services;
     private bool IsAdmin { get; set; }
     private Service newService = new Service();
     private Service editingService = new Service();
-    private Application newApplication = new Application
-        {
-            Status = "В ожидании"
-        };
-
+    private Application newApplication = new Application { Status = "В ожидании" };
 
     private bool showAddModal = false;
     private bool showEditModal = false;
     private bool isUserAuthenticated = false;
-    private string UserRole { get; set; }
-    private string currentUserRole = "Client";
+    private string UserRole { get; set; } = "Client";
+    private bool isInitialized = false;
+
+    // Для выбора нескольких услуг
+    private List<int> selectedServiceIds = new List<int>();
+    private Dictionary<int, int> serviceQuantities = new Dictionary<int, int>();
+    private Dictionary<int, string> serviceNotes = new Dictionary<int, string>();
 
     protected override async Task OnInitializedAsync()
     {
-        services = await ServicesService.GetAllServicesAsync();
-        var userRole = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "userRole");
-
-        if (!string.IsNullOrEmpty(userRole))
+        try
         {
-            isUserAuthenticated = true;
-            IsAdmin = userRole == "Admin";
-            UserRole = userRole;
+            services = await ServicesService.GetAllServicesAsync();
+            isInitialized = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка при загрузке услуг: {ex.Message}");
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var userRole = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "userRole");
+                if (!string.IsNullOrEmpty(userRole))
+                {
+                    isUserAuthenticated = true;
+                    IsAdmin = userRole == "Admin";
+                    UserRole = userRole;
+                    StateHasChanged();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при получении роли пользователя: {ex.Message}");
+            }
+        }
+    }
+
+    private void ToggleServiceSelection(int serviceId, bool isSelected)
+    {
+        if (isSelected && !selectedServiceIds.Contains(serviceId))
+        {
+            selectedServiceIds.Add(serviceId);
+            serviceQuantities[serviceId] = 1; 
+            serviceNotes[serviceId] = string.Empty;
+        }
+        else if (!isSelected && selectedServiceIds.Contains(serviceId))
+        {
+            selectedServiceIds.Remove(serviceId);
+            serviceQuantities.Remove(serviceId);
+            serviceNotes.Remove(serviceId);
         }
     }
 
     private async Task AddApplication()
     {
-        if (string.IsNullOrEmpty(newApplication.Status))
+        if (selectedServiceIds.Count == 0)
         {
-            newApplication.Status = "В ожидании";
-        }
-
-        newApplication.CreatedAt = DateTime.Now;
-
-        newApplication.UserId = int.Parse(await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "userId"));
-
-        if (string.IsNullOrEmpty(newApplication.Description) || newApplication.UserId == 0 || string.IsNullOrEmpty(newApplication.Status))
-        {
-            Console.WriteLine("Ошибка: описание или статус заявки не могут быть пустыми.");
+            await ShowAlert("Выберите хотя бы одну услугу");
             return;
         }
 
-        await SaveApplication(newApplication);
+        try
+        {
+            var userId = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "userId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                await ShowAlert("Не удалось определить пользователя");
+                return;
+            }
 
-        newApplication = new Application();
+            var application = new Application
+                {
+                    UserId = int.Parse(userId),
+                    CompanyName = newApplication.CompanyName,
+                    CompanyAddress = newApplication.CompanyAddress,
+                    Description = newApplication.Description,
+                    Status = "В ожидании",
+                    CreatedAt = DateTime.Now
+                };
+
+            foreach (var serviceId in selectedServiceIds)
+            {
+                var quantity = serviceQuantities.ContainsKey(serviceId) ? 1 : 1;
+
+                application.ApplicationServices.Add(new WebConsulting.Models.ApplicationService
+                    {
+                        ServiceId = serviceId,
+                        Quantity = quantity,
+                        Notes = serviceNotes.TryGetValue(serviceId, out var note) ? note : string.Empty
+                    });
+            }
+
+            DbContext.Applications.Add(application);
+            await DbContext.SaveChangesAsync();
+
+            await ShowAlert("Заявка успешно создана!");
+            ResetApplicationForm();
+        }
+        catch (Exception ex)
+        {
+            await ShowAlert($"Ошибка при создании заявки: {ex.Message}");
+        }
     }
 
-    public async Task SaveApplication(Application application)
+    private void ResetApplicationForm()
     {
-        if (string.IsNullOrEmpty(application.Status))
-        {
-            application.Status = "В ожидании";
-        }
+        newApplication = new Application();
+        selectedServiceIds.Clear();
+        serviceQuantities.Clear();
+        serviceNotes.Clear();
+    }
 
-        await DbContext.Applications.AddAsync(application);
-        await DbContext.SaveChangesAsync();
+    private async Task ShowAlert(string message)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("alert", message);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка при отображении alert: {ex.Message}");
+        }
     }
 
     private IEnumerable<IGrouping<string, Service>> GroupedServices =>
-        services?.GroupBy(s => s.Category);
+        services?.GroupBy(s => s.Category) ?? Enumerable.Empty<IGrouping<string, Service>>();
 
     private async Task DeleteService(int serviceId)
     {
-        await ServicesService.DeleteServiceAsync(serviceId);
-        services = await ServicesService.GetAllServicesAsync();
+        try
+        {
+            var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Вы уверены, что хотите удалить эту услугу?");
+            if (confirmed)
+            {
+                await ServicesService.DeleteServiceAsync(serviceId);
+                services = await ServicesService.GetAllServicesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowAlert($"Ошибка при удалении услуги: {ex.Message}");
+        }
     }
 
     private void ShowAddModal()
@@ -93,7 +180,14 @@
 
     private void ShowEditModal(Service service)
     {
-        editingService = service;
+        editingService = new Service
+            {
+                Id = service.Id,
+                Name = service.Name,
+                Description = service.Description,
+                Price = service.Price,
+                Category = service.Category
+            };
         showEditModal = true;
     }
 
@@ -104,17 +198,31 @@
 
     private async Task AddService()
     {
-        await ServicesService.AddServiceAsync(newService);
-        services = await ServicesService.GetAllServicesAsync();
-        showAddModal = false;
-        newService = new Service();
+        try
+        {
+            await ServicesService.AddServiceAsync(newService);
+            services = await ServicesService.GetAllServicesAsync();
+            showAddModal = false;
+            newService = new Service();
+        }
+        catch (Exception ex)
+        {
+            await ShowAlert($"Ошибка при добавлении услуги: {ex.Message}");
+        }
     }
 
     private async Task SaveService()
     {
-        await ServicesService.UpdateServiceAsync(editingService);
-        services = await ServicesService.GetAllServicesAsync();
-        showEditModal = false;
+        try
+        {
+            await ServicesService.UpdateServiceAsync(editingService);
+            services = await ServicesService.GetAllServicesAsync();
+            showEditModal = false;
+        }
+        catch (Exception ex)
+        {
+            await ShowAlert($"Ошибка при сохранении услуги: {ex.Message}");
+        }
     }
 
     private bool ShowUserForm => isUserAuthenticated && UserRole == "User";
@@ -131,30 +239,38 @@
         </div>
     </section>
 
-    <section class="container mx-auto px-6 my-12">
-        @if (services == null)
-        {
-            <p>Загрузка услуг...</p>
-        }
-        else
-        {
+    @if (!isInitialized)
+    {
+        <section class="container mx-auto px-6 my-12">
+            <p class="text-center py-8">Загрузка услуг...</p>
+        </section>
+    }
+    else
+    {
+        <section class="container mx-auto px-6 my-12">
             @foreach (var categoryGroup in GroupedServices)
             {
-                <div class="mb-8">
+                <div class="mb-8 bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-2xl font-bold text-gray-700 mb-4">@categoryGroup.Key</h2>
-                    <ul>
+                    <ul class="divide-y divide-gray-200">
                         @foreach (var service in categoryGroup)
                         {
-                            <li class="flex justify-between py-3 border-b">
-                                <div class="flex space-x-4">
-                                    <span>@service.Name</span>
+                            <li class="flex justify-between items-center py-4">
+                                <div class="flex flex-col md:flex-row md:items-center md:space-x-4">
+                                    <span class="font-medium">@service.Name</span>
                                     <span class="text-orange-500 font-semibold">@service.FormattedPrice</span>
                                 </div>
                                 @if (IsAdmin)
                                 {
                                     <div class="space-x-2">
-                                        <button class="bg-blue-500 text-white py-1 px-3 rounded hover:bg-blue-600" @onclick="() => ShowEditModal(service)">Редактировать</button>
-                                        <button class="bg-red-500 text-white py-1 px-3 rounded hover:bg-red-600" @onclick="() => DeleteService(service.Id)">Удалить</button>
+                                        <button class="bg-blue-500 text-white py-1 px-3 rounded hover:bg-blue-600 transition-colors"
+                                                @onclick="() => ShowEditModal(service)">
+                                            Редактировать
+                                        </button>
+                                        <button class="bg-red-500 text-white py-1 px-3 rounded hover:bg-red-600 transition-colors"
+                                                @onclick="() => DeleteService(service.Id)">
+                                            Удалить
+                                        </button>
                                     </div>
                                 }
                             </li>
@@ -162,134 +278,199 @@
                     </ul>
                 </div>
             }
-        }
-    </section>
-
-    @if (ShowUserForm)
-    {
-        <section class="container mx-auto px-6 py-8 bg-white shadow-md rounded-md">
-            <h2 class="text-xl font-semibold text-gray-800">Форма для компании</h2>
-            <EditForm Model="newApplication" OnValidSubmit="AddApplication">
-                <DataAnnotationsValidator />
-                <ValidationSummary />
-
-                <div>
-                    <label for="companyName" class="block text-sm font-medium text-gray-700">Название компании</label>
-                    <InputText id="companyName" @bind-Value="newApplication.CompanyName" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
-                </div>
-
-                <div class="mt-4">
-                    <label for="companyAddress" class="block text-sm font-medium text-gray-700">Адрес компании</label>
-                    <InputText id="companyAddress" @bind-Value="newApplication.CompanyAddress" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
-                </div>
-
-                <div class="mt-4">
-                    <label for="description" class="block text-sm font-medium text-gray-700">Описание заявки</label>
-                    <InputTextArea id="description" @bind-Value="newApplication.Description" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
-                </div>
-
-                <div class="mt-4">
-                    <label for="service" class="block text-sm font-medium text-gray-700">Выберите услугу</label>
-                    <select id="service" @bind="newApplication.ServiceId" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
-                        <option value="">Выберите услугу</option>
-                        @foreach (var service in services)
-                        {
-                            <option value="@service.Id">@service.Name - @service.FormattedPrice</option>
-                        }
-                    </select>
-                </div>
-
-                @if (currentUserRole == "Admin")
-                {
-                    <div class="mt-4">
-                        <label for="status" class="block text-sm font-medium text-gray-700">Статус заявки</label>
-                        <InputText id="status" @bind-Value="newApplication.Status" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
-                    </div>
-                }
-
-
-                <div class="flex justify-end space-x-4 mt-4">
-                    <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" @onclick="CloseAddModal">Отмена</button>
-                    <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">Добавить</button>
-                </div>
-            </EditForm>
         </section>
-    }
 
-
-    @if (IsAdmin)
-    {
-        <section class="text-center py-6">
-            <button class="bg-green-500 text-white py-2 px-6 rounded hover:bg-green-600" @onclick="ShowAddModal">Добавить услугу</button>
-        </section>
-    }
-
-    @if (showAddModal)
-    {
-        <div class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
-            <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Добавить услугу</h3>
-                <EditForm Model="newService" OnValidSubmit="AddService">
+        @if (ShowUserForm)
+        {
+            <section class="container mx-auto px-6 py-8 bg-white shadow-md rounded-md mb-8">
+                <h2 class="text-xl font-semibold text-gray-800 mb-6">Форма заявки на услуги</h2>
+                <EditForm Model="newApplication" OnValidSubmit="AddApplication">
                     <DataAnnotationsValidator />
                     <ValidationSummary />
-                    <div>
-                        <label>Название</label>
-                        <InputText @bind-Value="newService.Name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="companyName" class="block text-sm font-medium text-gray-700 mb-1">Название компании</label>
+                            <InputText id="companyName" @bind-Value="newApplication.CompanyName"
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                        </div>
+
+                        <div>
+                            <label for="companyAddress" class="block text-sm font-medium text-gray-700 mb-1">Адрес компании</label>
+                            <InputText id="companyAddress" @bind-Value="newApplication.CompanyAddress"
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Описание заявки</label>
+                            <InputTextArea id="description" @bind-Value="newApplication.Description"
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                           rows="3" />
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Выберите услуги</label>
+                            <div class="space-y-3">
+                                @foreach (var service in services)
+                                {
+                                    <div class="flex items-start p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                                        <div class="flex items-center h-5 mt-1">
+                                            <input type="checkbox"
+                                                   id="service-@service.Id"
+                                                   checked="@selectedServiceIds.Contains(service.Id)"
+                                                   @onchange="@((e) => ToggleServiceSelection(service.Id, (bool)e.Value))"
+                                                   class="h-4 w-4 text-orange-500 focus:ring-orange-500 border-gray-300 rounded">
+                                        </div>
+                                        <div class="ml-3 flex-1">
+                                            <label for="service-@service.Id" class="block text-sm font-medium text-gray-700">
+                                                @service.Name - @service.FormattedPrice
+                                            </label>
+
+                                            @if (selectedServiceIds.Contains(service.Id))
+                                            {
+                                                <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div class="hidden" style="display: none;">
+                                                        <label class="block text-xs text-gray-500 mb-1">Количество</label>
+                                                        <input type="number"
+                                                               @bind="serviceQuantities[service.Id]"
+                                                               @bind:event="oninput"
+                                                               class="w-full px-3 py-1 text-sm border border-gray-300 rounded-md"
+                                                               min="1" />
+                                                    </div>
+                                                    <div>
+                                                        <label class="block text-xs text-gray-500 mb-1">Примечание</label>
+                                                        <input type="text"
+                                                               @bind="serviceNotes[service.Id]"
+                                                               @bind:event="oninput"
+                                                               class="w-full px-3 py-1 text-sm border border-gray-300 rounded-md" />
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <label>Описание</label>
-                        <InputTextArea @bind-Value="newService.Description" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
-                    </div>
-                    <div>
-                        <label>Цена</label>
-                        <InputNumber @bind-Value="newService.Price" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
-                    </div>
-                    <div>
-                        <label>Категория</label>
-                        <InputText @bind-Value="newService.Category" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
-                    </div>
-                    <div class="flex justify-end space-x-4 mt-4">
-                        <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" @onclick="CloseAddModal">Отмена</button>
-                        <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">Сохранить</button>
+
+                    <div class="flex justify-end space-x-4 mt-6">
+                        <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+                                @onclick="ResetApplicationForm">
+                            Очистить
+                        </button>
+                        <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 transition-colors">
+                            Отправить заявку
+                        </button>
                     </div>
                 </EditForm>
+            </section>
+        }
+
+        @if (IsAdmin)
+        {
+            <section class="text-center py-6">
+                <button class="bg-green-500 text-white py-2 px-6 rounded hover:bg-green-600 transition-colors"
+                        @onclick="ShowAddModal">
+                    Добавить услугу
+                </button>
+            </section>
+        }
+    }
+
+    <!-- Модальные окна остаются без изменений -->
+    @if (showAddModal)
+    {
+        <div class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-lg shadow-lg w-full max-w-md">
+                <div class="p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Добавить услугу</h3>
+                    <EditForm Model="newService" OnValidSubmit="AddService">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Название</label>
+                                <InputText @bind-Value="newService.Name"
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+                                <InputTextArea @bind-Value="newService.Description"
+                                               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                               rows="3" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Цена</label>
+                                <InputNumber @bind-Value="newService.Price"
+                                             class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Категория</label>
+                                <InputText @bind-Value="newService.Category"
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                            </div>
+                        </div>
+                        <div class="flex justify-end space-x-4 mt-6">
+                            <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+                                    @onclick="CloseAddModal">
+                                Отмена
+                            </button>
+                            <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 transition-colors">
+                                Сохранить
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
             </div>
         </div>
     }
 
     @if (showEditModal)
     {
-        <div class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
-            <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Редактировать услугу</h3>
-                <EditForm Model="editingService" OnValidSubmit="SaveService">
-                    <DataAnnotationsValidator />
-                    <ValidationSummary />
-                    <div>
-                        <label>Название</label>
-                        <InputText @bind-Value="editingService.Name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
-                    </div>
-                    <div>
-                        <label>Описание</label>
-                        <InputTextArea @bind-Value="editingService.Description" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
-                    </div>
-                    <div>
-                        <label>Цена</label>
-                        <InputNumber @bind-Value="editingService.Price" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
-                    </div>
-                    <div>
-                        <label>Категория</label>
-                        <InputText @bind-Value="editingService.Category" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
-                    </div>
-                    <div class="flex justify-end space-x-4 mt-4">
-                        <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" @onclick="CloseEditModal">Отмена</button>
-                        <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">Сохранить</button>
-                    </div>
-                </EditForm>
+        <div class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-lg shadow-lg w-full max-w-md">
+                <div class="p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Редактировать услугу</h3>
+                    <EditForm Model="editingService" OnValidSubmit="SaveService">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Название</label>
+                                <InputText @bind-Value="editingService.Name"
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+                                <InputTextArea @bind-Value="editingService.Description"
+                                               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                               rows="3" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Цена</label>
+                                <InputNumber @bind-Value="editingService.Price"
+                                             class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Категория</label>
+                                <InputText @bind-Value="editingService.Category"
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                            </div>
+                        </div>
+                        <div class="flex justify-end space-x-4 mt-6">
+                            <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+                                    @onclick="CloseEditModal">
+                                Отмена
+                            </button>
+                            <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 transition-colors">
+                                Сохранить
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
             </div>
         </div>
     }
-
 
 </body>
 </html>

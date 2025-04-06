@@ -15,9 +15,10 @@ namespace WebConsulting.Other
         public async Task<List<Application>> GetAllApplications()
         {
             return await _context.Applications
-                                 .Include(a => a.User)
-                                 .Include(a => a.Service)
-                                 .ToListAsync();
+                .Include(a => a.User)
+                .Include(a => a.ApplicationServices)
+                    .ThenInclude(appService => appService.Service) // Добавляем загрузку связанных услуг
+                .ToListAsync();
         }
     }
 }

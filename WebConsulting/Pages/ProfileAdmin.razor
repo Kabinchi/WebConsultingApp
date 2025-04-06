@@ -112,7 +112,7 @@
             </div>
 
             <div class="w-full md:w-3/4 p-4 bg-white rounded-lg shadow-md">
-                @if (activeTab == 0) // Активные заявки
+                @if (activeTab == 0)
                 {
                     <div>
                         <h2 class="text-xl font-bold text-gray-800 mb-4">Все заявки</h2>
@@ -131,7 +131,7 @@
                                     <option value="CompanyName">Компания</option>
                                     <option value="CompanyAddress">Адрес</option>
                                     <option value="Description">Описание</option>
-                                    <option value="Service.Name">Услуга</option>
+                                    <option value="ServiceName">Услуга</option>
                                     <option value="CreatedAt">Дата</option>
                                     <option value="Status">Статус</option>
                                 </select>
@@ -179,13 +179,28 @@
                                             @foreach (var app in filteredApplications.Where(a => !a.IsDeleted))
                                             {
                                                 var userInfo = app.User;
+                                                var firstService = app.ApplicationServices.FirstOrDefault()?.Service;
                                                 <tr class="border-t">
                                                     <td class="px-2 py-2 text-sm">@userInfo.FullName</td>
                                                     <td class="px-2 py-2 text-sm">@FormatPhoneNumber(userInfo.PhoneNumber)</td>
                                                     <td class="px-2 py-2 text-sm">@userInfo.Email</td>
                                                     <td class="px-2 py-2 text-sm">@app.CompanyName</td>
                                                     <td class="px-2 py-2 text-sm">@app.CompanyAddress</td>
-                                                    <td class="px-2 py-2 text-sm">@app.Service?.Name</td>
+                                                    <td class="px-2 py-2 text-sm">
+                                                        @if (app.ApplicationServices.Any())
+                                                        {
+                                                            <ul class="list-disc pl-4">
+                                                                @foreach (var service in app.ApplicationServices)
+                                                                {
+                                                                    <li>@service.Service?.Name</li>
+                                                                }
+                                                            </ul>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span>Нет услуг</span>
+                                                        }
+                                                    </td>
                                                     <td class="px-2 py-2 text-sm">@app.CreatedAt.ToString("dd.MM.yyyy")</td>
                                                     <td class="px-2 py-2 text-sm @GetStatusClass(app.Status)">@app.Status</td>
                                                     <td class="px-2 py-2 text-sm">
@@ -212,7 +227,7 @@
                         }
                     </div>
                 }
-                else if (activeTab == 1) // Архив заявок
+                else if (activeTab == 1)
                 {
                     <div>
                         <h2 class="text-xl font-bold text-gray-800 mb-4">Архив заявок</h2>
@@ -263,11 +278,26 @@
                                     <tbody>
                                         @foreach (var app in filteredArchivedApplications)
                                         {
+                                            var firstService = app.ApplicationServices.FirstOrDefault()?.Service;
                                             <tr class="border-t">
                                                 <td class="px-2 py-2 text-sm">@app.User?.FullName</td>
                                                 <td class="px-2 py-2 text-sm">@FormatPhoneNumber(app.User?.PhoneNumber)</td>
                                                 <td class="px-2 py-2 text-sm">@app.CompanyName</td>
-                                                <td class="px-2 py-2 text-sm">@app.Service?.Name</td>
+                                                <td class="px-2 py-2 text-sm">
+                                                    @if (app.ApplicationServices.Any())
+                                                    {
+                                                        <ul class="list-disc pl-4">
+                                                            @foreach (var service in app.ApplicationServices)
+                                                            {
+                                                                <li>@service.Service?.Name</li>
+                                                            }
+                                                        </ul>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>Нет услуг</span>
+                                                    }
+                                                </td>
                                                 <td class="px-2 py-2 text-sm">@app.CreatedAt.ToString("dd.MM.yyyy")</td>
                                                 <td class="px-2 py-2 text-sm">@app.DeletedAt?.ToString("dd.MM.yyyy")</td>
                                                 <td class="px-2 py-2 text-sm">@app.DeletedBy</td>
@@ -285,7 +315,7 @@
                         }
                     </div>
                 }
-                else if (activeTab == 2) // Профиль
+                else if (activeTab == 2)
                 {
                     <div class="bg-white p-6 rounded-lg">
                         <h2 class="text-xl font-bold text-gray-800 mb-4">Профиль администратора</h2>
@@ -388,7 +418,6 @@
     private Application applicationToCancel;
     private string cancelReason = string.Empty;
 
-    // Фильтры для активных заявок
     private string searchText = "";
     private string searchColumn = "";
     private string statusFilter = "";
@@ -396,7 +425,6 @@
     private string companyFilter = "";
     private int serviceFilter = 0;
 
-    // Фильтры для архива
     private string archiveSearchText = "";
     private string archiveSearchColumn = "";
 
@@ -419,7 +447,8 @@
     {
         applications = await DbContext.Applications
             .Include(a => a.User)
-            .Include(a => a.Service)
+            .Include(a => a.ApplicationServices)
+            .ThenInclude(appService => appService.Service)
             .Where(a => !a.IsDeleted)
             .ToListAsync();
         filteredApplications = applications;
@@ -429,7 +458,8 @@
     {
         archivedApplications = await DbContext.Applications
             .Include(a => a.User)
-            .Include(a => a.Service)
+            .Include(a => a.ApplicationServices)
+            .ThenInclude(appService => appService.Service)
             .Where(a => a.IsDeleted)
             .ToListAsync();
         filteredArchivedApplications = archivedApplications;
@@ -462,7 +492,7 @@
 
             if (serviceFilter > 0)
             {
-                query = query.Where(a => a.Service != null && a.Service.Id == serviceFilter);
+                query = query.Where(a => a.ApplicationServices.Any(appService => appService.ServiceId == serviceFilter));
             }
 
             if (!string.IsNullOrEmpty(statusFilter))
@@ -481,8 +511,8 @@
                         (a.CompanyName != null && a.CompanyName.Contains(searchText, StringComparison.OrdinalIgnoreCase)) ||
                         (a.CompanyAddress != null && a.CompanyAddress.Contains(searchText, StringComparison.OrdinalIgnoreCase)) ||
                         (a.Description != null && a.Description.Contains(searchText, StringComparison.OrdinalIgnoreCase)) ||
-                        (a.Service != null && a.Service.Name != null &&
-                         a.Service.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)) ||
+                        (a.ApplicationServices.Any(appService => appService.Service.Name != null &&
+                         appService.Service.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase))) ||
                         (a.CreatedAt.ToString("dd.MM.yyyy").Contains(searchText)) ||
                         (a.Status != null && a.Status.Contains(searchText, StringComparison.OrdinalIgnoreCase)));
                 }
@@ -502,8 +532,8 @@
                                   a.CompanyAddress.Contains(searchText, StringComparison.OrdinalIgnoreCase)),
                         "Description" => query.Where(a => a.Description != null &&
                                   a.Description.Contains(searchText, StringComparison.OrdinalIgnoreCase)),
-                        "Service.Name" => query.Where(a => a.Service != null && a.Service.Name != null &&
-                                  a.Service.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)),
+                        "ServiceName" => query.Where(a => a.ApplicationServices.Any(appService => appService.Service.Name != null &&
+                                  appService.Service.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase))),
                         "CreatedAt" => query.Where(a => a.CreatedAt.ToString("dd.MM.yyyy").Contains(searchText)),
                         "Status" => query.Where(a => a.Status != null &&
                                   a.Status.Contains(searchText, StringComparison.OrdinalIgnoreCase)),
@@ -601,7 +631,7 @@
             applicationToCancel.DeletedAt = DateTime.Now;
             applicationToCancel.DeleteReason = cancelReason;
             applicationToCancel.DeletedBy = "admin";
-            applicationToCancel.Status = "Отказано"; // Устанавливаем статус "Отказано" при отмене
+            applicationToCancel.Status = "Отказано";
 
             try
             {
@@ -629,7 +659,7 @@
         app.DeletedAt = null;
         app.DeleteReason = null;
         app.DeletedBy = null;
-        app.Status = "В ожидании"; // Устанавливаем статус "В ожидании" при восстановлении
+        app.Status = "В ожидании";
 
         try
         {

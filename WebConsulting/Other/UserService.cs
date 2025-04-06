@@ -14,6 +14,8 @@ public class UserService
     {
         return _context.Users
             .Include(u => u.Applications)
+                .ThenInclude(a => a.ApplicationServices)
+                    .ThenInclude(appService => appService.Service)
             .FirstOrDefault(u => u.Id == userId);
     }
 
@@ -21,7 +23,8 @@ public class UserService
     {
         return await _context.Applications
             .Where(a => a.UserId == userId && !a.IsDeleted)
-            .Include(a => a.Service)
+            .Include(a => a.ApplicationServices)
+                .ThenInclude(appService => appService.Service)
             .OrderByDescending(a => a.CreatedAt)
             .ToListAsync();
     }
@@ -30,7 +33,8 @@ public class UserService
     {
         return await _context.Applications
             .Where(a => a.UserId == userId)
-            .Include(a => a.Service)
+            .Include(a => a.ApplicationServices)
+                .ThenInclude(appService => appService.Service)
             .OrderByDescending(a => a.CreatedAt)
             .ToListAsync();
     }
@@ -50,7 +54,10 @@ public class UserService
 
     public async Task<bool> CancelApplication(int applicationId, string reason, string canceledBy, int canceledById)
     {
-        var application = await _context.Applications.FindAsync(applicationId);
+        var application = await _context.Applications
+            .Include(a => a.ApplicationServices)
+            .FirstOrDefaultAsync(a => a.Id == applicationId);
+
         if (application == null) return false;
 
         application.IsDeleted = true;
@@ -68,6 +75,7 @@ public class UserService
     {
         var application = await _context.Applications
             .IgnoreQueryFilters()
+            .Include(a => a.ApplicationServices)
             .FirstOrDefaultAsync(a => a.Id == applicationId);
 
         if (application == null || !application.IsDeleted) return false;

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace WebConsulting.Models;
 
-[Index("Email", Name = "UQ__Users__A9D1053473EFD549", IsUnique = true)]
+[Index("Email", Name = "UQ__Users__A9D10534DC650A90", IsUnique = true)]
 public partial class User
 {
     [Key]
@@ -25,11 +25,13 @@ public partial class User
     [Required]
     [StringLength(255)]
     public string Password { get; set; }
-    public string PhoneNumber { get; set; }
 
     [Required]
     [StringLength(20)]
     public string Role { get; set; }
+
+    [StringLength(20)]
+    public string PhoneNumber { get; set; }
 
     [InverseProperty("User")]
     public virtual ICollection<Application> Applications { get; set; } = new List<Application>();

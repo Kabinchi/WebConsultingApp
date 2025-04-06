@@ -47,7 +47,6 @@
         }
     </style>
 </head>
-
 <body class="bg-gray-100 text-gray-800">
     <nav class="bg-gray-800 text-white p-4">
         <div class="container mx-auto flex justify-between items-center">
@@ -145,7 +144,7 @@
                                         <tr>
                                             <th class="px-2 py-2 text-sm">Компания</th>
                                             <th class="px-2 py-2 text-sm">Адрес</th>
-                                            <th class="px-2 py-2 text-sm">Услуга</th>
+                                            <th class="px-2 py-2 text-sm">Услуги</th>
                                             <th class="px-2 py-2 text-sm">Дата</th>
                                             <th class="px-2 py-2 text-sm">Статус</th>
                                             <th class="px-2 py-2 text-sm">Действия</th>
@@ -157,7 +156,21 @@
                                             <tr class="border-t">
                                                 <td class="px-2 py-2 text-sm">@app.CompanyName</td>
                                                 <td class="px-2 py-2 text-sm">@app.CompanyAddress</td>
-                                                <td class="px-2 py-2 text-sm">@app.Service?.Name</td>
+                                                <td class="px-2 py-2 text-sm">
+                                                    @if (app.ApplicationServices.Any())
+                                                    {
+                                                        <ul class="list-disc pl-4">
+                                                            @foreach (var service in app.ApplicationServices)
+                                                            {
+                                                                <li>@service.Service?.Name</li>
+                                                            }
+                                                        </ul>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>Нет услуг</span>
+                                                    }
+                                                </td>
                                                 <td class="px-2 py-2 text-sm">@app.CreatedAt.ToString("dd.MM.yyyy")</td>
                                                 <td class="px-2 py-2 text-sm @GetStatusClass(app.Status)">@app.Status</td>
                                                 <td class="px-2 py-2 text-sm">
@@ -218,12 +231,8 @@
         if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out int id))
         {
             currentUserId = id;
-            var loadedUser = UserService.GetUserById(currentUserId);
-            if (loadedUser != null)
-            {
-                user = loadedUser;
-                applications = await UserService.GetActiveApplicationsByUserId(currentUserId) ?? new();
-            }
+            user = UserService.GetUserById(currentUserId);
+            applications = await UserService.GetActiveApplicationsByUserId(currentUserId);
         }
     }
 
@@ -261,7 +270,6 @@
     {
         "Ожидайте звонок" => "text-green-500",
         "Отказано" => "text-red-500",
-        "Отказано, ожидайте звонок" => "text-yellow-500",
         "В ожидании" => "text-orange-500",
         "Выполнено" => "text-blue-600 font-semibold",
         "Отменено" => "text-gray-500 line-through",
@@ -305,7 +313,7 @@
 
     private async Task SaveChanges()
     {
-        if (string.IsNullOrEmpty(phoneError))
+        if (!string.IsNullOrEmpty(phoneError))
         {
             await UserService.UpdateUser(user);
             isFullNameDisabled = true;
