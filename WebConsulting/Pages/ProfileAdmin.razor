@@ -30,18 +30,43 @@
             flex-grow: 1;
         }
 
-        table {
-            table-layout: fixed;
-            width: 100%;
+        .table-container {
             overflow-x: auto;
+            max-width: 100%;
         }
 
-        th,
-        td {
-            word-wrap: break-word;
+        table {
+            width: 100%;
+            min-width: 800px;
+        }
+
+        th, td {
+            padding: 0.5rem;
+            text-align: left;
+            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
+            max-width: 200px;
+        }
+
+        .filter-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .filter-dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            padding: 12px;
+            border-radius: 4px;
+        }
+
+        .filter-dropdown:hover .filter-dropdown-content {
+            display: block;
         }
     </style>
 </head>
@@ -59,8 +84,8 @@
     </nav>
 
     <main class="container mx-auto py-8 px-4 lg:px-16 min-h-[calc(95%-64px)]">
-        <div class="flex mt-8">
-            <div class="w-1/4 p-4 bg-gray-200">
+        <div class="flex flex-col md:flex-row mt-8">
+            <div class="w-full md:w-1/4 p-4 bg-gray-200 mb-4 md:mb-0">
                 <button class="w-full py-2 mb-4 rounded @GetTabClass(isApplicationsTab)"
                         @onclick="ShowApplicationsTab">
                     Просмотр заявок
@@ -71,74 +96,164 @@
                 </button>
             </div>
 
-            <div class="w-3/4 p-4">
+            <div class="w-full md:w-3/4 p-4 bg-white rounded-lg shadow-md">
                 @if (isApplicationsTab)
                 {
                     <div>
                         <h2 class="text-xl font-bold text-gray-800 mb-4">Все заявки</h2>
+
+                        <!-- Поиск и фильтры -->
+                        <div class="mb-4 flex flex-col md:flex-row gap-4">
+                            <div class="flex-grow">
+                                <input type="text" class="w-full p-2 border border-gray-300 rounded"
+                                       placeholder="Поиск..." @bind="searchText" @bind:event="oninput" />
+                            </div>
+                            <div>
+                                <select class="p-2 border border-gray-300 rounded" @bind="searchColumn">
+                                    <option value="">Все столбцы</option>
+                                    <option value="FullName">Имя пользователя</option>
+                                    <option value="PhoneNumber">Телефон</option>
+                                    <option value="Email">Почта</option>
+                                    <option value="CompanyName">Компания</option>
+                                    <option value="CompanyAddress">Адрес</option>
+                                    <option value="Description">Описание</option>
+                                    <option value="Service.Name">Услуга</option>
+                                    <option value="CreatedAt">Дата</option>
+                                    <option value="Status">Статус</option>
+                                </select>
+                            </div>
+                            <div>
+                                <select class="p-2 border border-gray-300 rounded" @bind="statusFilter">
+                                    <option value="">Все статусы</option>
+                                    <option value="В ожидании">В ожидании</option>
+                                    <option value="Ожидайте звонок">Ожидайте звонок</option>
+                                    <option value="Отказано">Отказано</option>
+                                    <option value="Выполнено">Выполнено</option>
+                                </select>
+                            </div>
+                            <button @onclick="ApplyFilters" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                                Применить
+                            </button>
+                            <button @onclick="ResetFilters" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                                Сбросить
+                            </button>
+                        </div>
+
                         @if (applications == null || applications.Count == 0)
                         {
                             <p class="text-gray-600">Нет активных заявок.</p>
                         }
                         else
                         {
-                            <table class="table-auto w-full bg-white shadow-md rounded-lg">
-                                <thead class="bg-gray-200">
-                                    <tr>
-                                        <th class="px-2 py-2 text-sm">Имя пользователя</th>
-                                        <th class="px-2 py-2 text-sm">Телефон</th>
-                                        <th class="px-2 py-2 text-sm">Почта</th>
-                                        <th class="px-2 py-2 text-sm">Компания</th>
-                                        <th class="px-2 py-2 text-sm">Адрес</th>
-                                        <th class="px-2 py-2 text-sm">Описание</th>
-                                        <th class="px-2 py-2 text-sm">Услуга</th>
-                                        <th class="px-2 py-2 text-sm">Дата</th>
-                                        <th class="px-2 py-2 text-sm">Статус</th>
-                                        <th class="px-2 py-2 text-sm">Действия</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var app in applications)
-                                    {
-                                        var userInfo = app.User;
+                            <div class="table-container">
+                                <table class="table-auto bg-white">
+                                    <thead class="bg-gray-200">
                                         <tr>
-                                            <td class="border px-2 py-2 text-sm">@userInfo.FullName</td>
-                                            <td class="border px-2 py-2 text-sm">@userInfo.PhoneNumber</td>
-                                            <td class="border px-2 py-2 text-sm">@userInfo.Email</td>
-                                            <td class="border px-2 py-2 text-sm">@app.CompanyName</td>
-                                            <td class="border px-2 py-2 text-sm">@app.CompanyAddress</td>
-                                            <td class="border px-2 py-2 text-sm">@app.Description</td>
-                                            <td class="border px-2 py-2 text-sm">@app.Service?.Name</td>
-                                            <td class="border px-2 py-2 text-sm">@app.CreatedAt.ToString("dd.MM.yyyy")</td>
-                                            <td class="border px-2 py-2 text-sm @GetStatusClass(app.Status)">@app.Status</td>
-                                            <td class="border px-2 py-2 text-sm">
-                                                <select @bind="app.Status" class="border px-2 py-1 rounded">
-                                                    <option value="В ожидании" selected="@IsStatusSelected(app.Status, "В ожидании")">В ожидании</option>
-                                                    <option value="Ожидайте звонок" selected="@IsStatusSelected(app.Status, "Ожидайте звонок")">Ожидайте звонок</option>
-                                                    <option value="Отказано" selected="@IsStatusSelected(app.Status, "Отказано, ожидайте звонок")">Отказано</option>
-                                                </select>
-                                            </td>
-                                            <td class="border px-2 py-2 text-sm">
-                                                <button @onclick="() => SaveStatus(app)" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                                                    Сохранить
-                                                </button>
-                                            </td>
+                                            <th class="px-2 py-2 text-sm">
+                                                <div class="filter-dropdown">
+                                                    Имя пользователя
+                                                    <div class="filter-dropdown-content">
+                                                        <input type="text" class="w-full p-1 mb-2 border"
+                                                               placeholder="Фильтр..." @bind="nameFilter" @bind:event="oninput" />
+                                                        <button @onclick="ApplyFilters" class="text-sm bg-blue-500 text-white px-2 py-1 rounded">
+                                                            Применить
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </th>
+                                            <th class="px-2 py-2 text-sm">Телефон</th>
+                                            <th class="px-2 py-2 text-sm">Почта</th>
+                                            <th class="px-2 py-2 text-sm">
+                                                <div class="filter-dropdown">
+                                                    Компания
+                                                    <div class="filter-dropdown-content">
+                                                        <input type="text" class="w-full p-1 mb-2 border"
+                                                               placeholder="Фильтр..." @bind="companyFilter" @bind:event="oninput" />
+                                                        <button @onclick="ApplyFilters" class="text-sm bg-blue-500 text-white px-2 py-1 rounded">
+                                                            Применить
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </th>
+                                            <th class="px-2 py-2 text-sm">Адрес</th>
+                                            <th class="px-2 py-2 text-sm">Описание</th>
+                                            <th class="px-2 py-2 text-sm">
+                                                <div class="filter-dropdown">
+                                                    Услуга
+                                                    <div class="filter-dropdown-content">
+                                                        <select class="w-full p-1 mb-2 border" @bind="serviceFilter">
+                                                            <option value="0">Все услуги</option>
+                                                            @foreach (var service in services)
+                                                            {
+                                                                <option value="@service.Id">@service.Name</option>
+                                                            }
+                                                        </select>
+                                                        <button @onclick="ApplyFilters" class="text-sm bg-blue-500 text-white px-2 py-1 rounded">
+                                                            Применить
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </th>
+                                            <th class="px-2 py-2 text-sm">Дата</th>
+                                            <th class="px-2 py-2 text-sm">Статус</th>
+                                            <th class="px-2 py-2 text-sm">Действия</th>
                                         </tr>
-                                    }
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        @if (filteredApplications != null && filteredApplications.Any())
+                                        {
+                                            @foreach (var app in filteredApplications)
+                                            {
+                                                var userInfo = app.User;
+                                                <tr class="border-t">
+                                                <td class="px-2 py-2 text-sm">@userInfo.FullName</td>
+                                                <td class="px-2 py-2 text-sm">@FormatPhoneNumber(userInfo.PhoneNumber)</td>
+                                                <td class="px-2 py-2 text-sm">@userInfo.Email</td>
+                                                <td class="px-2 py-2 text-sm">@app.CompanyName</td>
+                                                <td class="px-2 py-2 text-sm">@app.CompanyAddress</td>
+                                                <td class="px-2 py-2 text-sm">@app.Description</td>
+                                                <td class="px-2 py-2 text-sm">@app.Service?.Name</td>
+                                                <td class="px-2 py-2 text-sm">@app.CreatedAt.ToString("dd.MM.yyyy")</td>
+                                                <td class="px-2 py-2 text-sm @GetStatusClass(app.Status)">@app.Status</td>
+                                                <td class="px-2 py-2 text-sm">
+                                                    <select @bind="app.Status" class="border px-2 py-1 rounded text-sm">
+                                                        <option value="В ожидании" selected="@IsStatusSelected(app.Status, "В ожидании")">В ожидании</option>
+                                                        <option value="Ожидайте звонок" selected="@IsStatusSelected(app.Status, "Ожидайте звонок")">Ожидайте звонок</option>
+                                                        <option value="Отказано" selected="@IsStatusSelected(app.Status, "Отказано, ожидайте звонок")">Отказано</option>
+                                                        <option value="Выполнено" selected="@IsStatusSelected(app.Status, "Выполнено")">Выполнено</option>
+                                                    </select>
+                                                </td>
+                                                <td class="px-2 py-2 text-sm">
+                                                    <button @onclick="() => SaveStatus(app)" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm">
+                                                        Сохранить
+                                                    </button>
+                                                </td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="11" class="text-center py-4 text-gray-500">
+                                                    Ничего не найдено. Попробуйте изменить параметры поиска.
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
                         }
                     </div>
                 }
                 else
                 {
-                    <div class="bg-white p-6 shadow-md rounded-lg">
+                    <div class="bg-white p-6 rounded-lg">
                         <h2 class="text-xl font-bold text-gray-800 mb-4">Профиль администратора</h2>
                         <div class="mb-4">
                             <label for="fullName" class="block text-sm font-medium text-gray-700">Имя</label>
                             <input type="text" id="fullName" class="mt-1 block w-full p-2 border border-gray-300 rounded"
                                    @bind="user.FullName" @bind:event="oninput" disabled="@isFullNameDisabled" />
-                            <button @onclick="ToggleFullNameEdit" class="text-blue-500 mt-2">
+                            <button @onclick="ToggleFullNameEdit" class="text-blue-500 mt-2 text-sm">
                                 @if (isFullNameDisabled)
                                 {
                                     <span>Редактировать</span>
@@ -152,9 +267,19 @@
 
                         <div class="mb-4">
                             <label for="phone" class="block text-sm font-medium text-gray-700">Телефон</label>
-                            <input type="text" id="phone" class="mt-1 block w-full p-2 border border-gray-300 rounded"
-                                   @bind="user.PhoneNumber" @bind:event="oninput" disabled="@isPhoneDisabled" />
-                            <button @onclick="TogglePhoneEdit" class="text-blue-500 mt-2" @oninput="ValidatePhoneNumber">
+                            @if (isPhoneDisabled)
+                            {
+                                <div class="mt-1 block w-full p-2 border border-gray-300 rounded bg-gray-100">
+                                    @FormatPhoneNumber(user.PhoneNumber)
+                                </div>
+                            }
+                            else
+                            {
+                                <input type="text" id="phone" class="mt-1 block w-full p-2 border border-gray-300 rounded"
+                                       value="@user.PhoneNumber"
+                                       @oninput="HandlePhoneInput" />
+                            }
+                            <button @onclick="TogglePhoneEdit" class="text-blue-500 mt-2 text-sm">
                                 @if (isPhoneDisabled)
                                 {
                                     <span>Редактировать</span>
@@ -192,49 +317,210 @@
 </html>
 
 @code {
+    private string FormattedPhoneNumber => FormatPhoneNumber(user.PhoneNumber);
     private bool isApplicationsTab = true;
     private bool isFullNameDisabled = true;
     private bool isPhoneDisabled = true;
     private List<Application> applications;
+    private List<Application> filteredApplications;
+    private List<Service> services;
     private User user;
     private string phoneError = string.Empty;
 
-    private void ValidatePhoneNumber(ChangeEventArgs e)
-    {
-        var input = e.Value?.ToString() ?? string.Empty;
-
-        var phoneRegex = @"^(?:\+7|8)\d{10}$";
-        if (System.Text.RegularExpressions.Regex.IsMatch(input, phoneRegex))
-        {
-            phoneError = string.Empty; 
-        }
-        else
-        {
-            phoneError = "Номер телефона должен быть в формате +7XXXXXXXXXX или 8XXXXXXXXXX.";
-        }
-    }
-
-    private string GetTabClass(bool isActive) => isActive ? "bg-blue-500 text-white" : "bg-gray-300 text-gray-800";
+    // Фильтры и поиск
+    private string searchText = "";
+    private string searchColumn = "";
+    private string statusFilter = "";
+    private string nameFilter = "";
+    private string companyFilter = "";
+    private int serviceFilter = 0;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             applications = await DbContext.Applications
-                                          .Include(a => a.User)
-                                          .Include(a => a.Service)
-                                          .ToListAsync();
+                                      .Include(a => a.User)
+                                      .Include(a => a.Service)
+                                      .ToListAsync();
 
+            services = await DbContext.Services.ToListAsync();
             user = await DbContext.Users.FirstOrDefaultAsync(u => u.Role == "Admin") ?? new User();
+
+            filteredApplications = applications;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Ошибка при загрузке данных: {ex.Message}");
             applications = new List<Application>();
+            filteredApplications = new List<Application>();
+            services = new List<Service>();
         }
     }
 
-    private void ShowApplicationsTab() => isApplicationsTab = true;
+    private void ApplyFilters()
+    {
+        try
+        {
+            if (applications == null || !applications.Any())
+            {
+                filteredApplications = new List<Application>();
+                return;
+            }
+
+            var query = applications.AsQueryable();
+
+            // Применяем фильтры по столбцам
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                query = query.Where(a => a.User.FullName != null &&
+                       a.User.FullName.Contains(nameFilter, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrEmpty(companyFilter))
+            {
+                query = query.Where(a => a.CompanyName != null &&
+                       a.CompanyName.Contains(companyFilter, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (serviceFilter > 0)
+            {
+                query = query.Where(a => a.Service != null && a.Service.Id == serviceFilter);
+            }
+
+            // Применяем фильтр по статусу
+            if (!string.IsNullOrEmpty(statusFilter))
+            {
+                query = query.Where(a => a.Status == statusFilter);
+            }
+
+            // Применяем общий поиск
+            if (!string.IsNullOrEmpty(searchText))
+            {
+                if (string.IsNullOrEmpty(searchColumn))
+                {
+                    // Поиск по всем столбцам
+                    query = query.Where(a =>
+                        (a.User.FullName != null && a.User.FullName.Contains(searchText, StringComparison.OrdinalIgnoreCase)) ||
+                        (a.User.PhoneNumber != null && a.User.PhoneNumber.Contains(searchText, StringComparison.OrdinalIgnoreCase)) ||
+                        (a.User.Email != null && a.User.Email.Contains(searchText, StringComparison.OrdinalIgnoreCase)) ||
+                        (a.CompanyName != null && a.CompanyName.Contains(searchText, StringComparison.OrdinalIgnoreCase)) ||
+                        (a.CompanyAddress != null && a.CompanyAddress.Contains(searchText, StringComparison.OrdinalIgnoreCase)) ||
+                        (a.Description != null && a.Description.Contains(searchText, StringComparison.OrdinalIgnoreCase)) ||
+                        (a.Service != null && a.Service.Name != null &&
+                         a.Service.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)) ||
+                        (a.CreatedAt.ToString("dd.MM.yyyy").Contains(searchText)) ||
+                        (a.Status != null && a.Status.Contains(searchText, StringComparison.OrdinalIgnoreCase)));
+                }
+                else
+                {
+                    // Поиск по выбранному столбцу
+                    query = searchColumn switch
+                    {
+                        "FullName" => query.Where(a => a.User.FullName != null &&
+                                  a.User.FullName.Contains(searchText, StringComparison.OrdinalIgnoreCase)),
+                        "PhoneNumber" => query.Where(a => a.User.PhoneNumber != null &&
+                                  a.User.PhoneNumber.Contains(searchText, StringComparison.OrdinalIgnoreCase)),
+                        "Email" => query.Where(a => a.User.Email != null &&
+                                  a.User.Email.Contains(searchText, StringComparison.OrdinalIgnoreCase)),
+                        "CompanyName" => query.Where(a => a.CompanyName != null &&
+                                  a.CompanyName.Contains(searchText, StringComparison.OrdinalIgnoreCase)),
+                        "CompanyAddress" => query.Where(a => a.CompanyAddress != null &&
+                                  a.CompanyAddress.Contains(searchText, StringComparison.OrdinalIgnoreCase)),
+                        "Description" => query.Where(a => a.Description != null &&
+                                  a.Description.Contains(searchText, StringComparison.OrdinalIgnoreCase)),
+                        "Service.Name" => query.Where(a => a.Service != null && a.Service.Name != null &&
+                                  a.Service.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)),
+                        "CreatedAt" => query.Where(a => a.CreatedAt.ToString("dd.MM.yyyy").Contains(searchText)),
+                        "Status" => query.Where(a => a.Status != null &&
+                                  a.Status.Contains(searchText, StringComparison.OrdinalIgnoreCase)),
+                        _ => query
+                    };
+                }
+            }
+
+            filteredApplications = query.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка при фильтрации: {ex.Message}");
+            filteredApplications = new List<Application>();
+        }
+    }
+
+    private void ResetFilters()
+    {
+        searchText = "";
+        searchColumn = "";
+        statusFilter = "";
+        nameFilter = "";
+        companyFilter = "";
+        serviceFilter = 0;
+        filteredApplications = applications;
+    }
+
+
+    private string FormatPhoneNumber(string phone)
+    {
+        if (string.IsNullOrEmpty(phone)) return string.Empty;
+
+        // Удаляем все нецифровые символы
+        var digits = new string(phone.Where(char.IsDigit).ToArray());
+
+        // Если номер начинается с 8, заменяем на 7
+        if (digits.Length > 0 && digits[0] == '8')
+        {
+            digits = '7' + digits[1..];
+        }
+
+        // Форматируем номер
+        return digits.Length switch
+        {
+            11 => $"+7({digits[1..4]}){digits[4..7]}-{digits[7..9]}-{digits[9..]}",
+            _ => phone // Возвращаем как есть, если не соответствует формату
+        };
+    }
+
+    private void HandlePhoneInput(ChangeEventArgs e)
+    {
+        var input = e.Value?.ToString() ?? string.Empty;
+
+        // Сохраняем только цифры
+        var digits = new string(input.Where(char.IsDigit).ToArray());
+
+        // Если первый символ 8, заменяем на 7
+        if (digits.Length > 0 && digits[0] == '8')
+        {
+            digits = '7' + digits[1..];
+        }
+
+        // Сохраняем в модели только цифры
+        user.PhoneNumber = digits;
+
+        // Валидация
+        ValidatePhoneNumber(digits);
+    }
+
+    private void ValidatePhoneNumber(string digits)
+    {
+        if (digits.Length == 11 && (digits.StartsWith("7") || digits.StartsWith("8")))
+        {
+            phoneError = string.Empty;
+        }
+        else
+        {
+            phoneError = "Номер телефона должен содержать 11 цифр и начинаться с 7 или 8";
+        }
+    }
+
+    private string GetTabClass(bool isActive) => isActive ? "bg-blue-500 text-white" : "bg-gray-300 text-gray-800";
+
+    private void ShowApplicationsTab()
+    {
+        isApplicationsTab = true;
+        ApplyFilters();
+    }
+
     private void ShowProfileTab() => isApplicationsTab = false;
 
     private void ToggleFullNameEdit() => isFullNameDisabled = !isFullNameDisabled;
@@ -266,7 +552,6 @@
         }
     }
 
-
     private async Task SaveStatus(Application app)
     {
         try
@@ -289,6 +574,7 @@
         "Отказано" => "text-red-500",
         "Отказано, ожидайте звонок" => "text-yellow-500",
         "В ожидании" => "text-orange-500",
+        "Выполнено" => "text-blue-600 font-semibold",
         _ => "text-gray-500",
     };
 
