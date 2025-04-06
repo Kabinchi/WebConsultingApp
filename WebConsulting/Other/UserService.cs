@@ -12,30 +12,74 @@ public class UserService
 
     public User GetUserById(int userId)
     {
-        return _context.Users.FirstOrDefault(u => u.Id == userId);
+        return _context.Users
+            .Include(u => u.Applications)
+            .FirstOrDefault(u => u.Id == userId);
     }
 
-    public async Task<List<Application>> GetApplicationsByUserId(int userId)
+    public async Task<List<Application>> GetActiveApplicationsByUserId(int userId)
     {
-        using var context = new ConsultingDBContext();
-        return await context.Applications
+        return await _context.Applications
+            .Where(a => a.UserId == userId && !a.IsDeleted)
             .Include(a => a.Service)
-            .Where(a => a.UserId == userId)
+            .OrderByDescending(a => a.CreatedAt)
             .ToListAsync();
     }
 
+    public async Task<List<Application>> GetAllApplicationsByUserId(int userId)
+    {
+        return await _context.Applications
+            .Where(a => a.UserId == userId)
+            .Include(a => a.Service)
+            .OrderByDescending(a => a.CreatedAt)
+            .ToListAsync();
+    }
 
     public async Task UpdateUser(User user)
     {
-        var existingUser = _context.Users.FirstOrDefault(u => u.Id == user.Id);
+        var existingUser = await _context.Users.FindAsync(user.Id);
         if (existingUser != null)
         {
             existingUser.FullName = user.FullName;
             existingUser.PhoneNumber = user.PhoneNumber;
             existingUser.Email = user.Email;
 
-            _context.Users.Update(existingUser);
             await _context.SaveChangesAsync();
         }
+    }
+
+    public async Task<bool> CancelApplication(int applicationId, string reason, string canceledBy, int canceledById)
+    {
+        var application = await _context.Applications.FindAsync(applicationId);
+        if (application == null) return false;
+
+        application.IsDeleted = true;
+        application.DeletedAt = DateTime.Now;
+        application.DeleteReason = reason;
+        application.DeletedBy = canceledBy;
+        application.DeletedByUserId = canceledById.ToString();
+        application.Status = "Отменено";
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> RestoreApplication(int applicationId)
+    {
+        var application = await _context.Applications
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(a => a.Id == applicationId);
+
+        if (application == null || !application.IsDeleted) return false;
+
+        application.IsDeleted = false;
+        application.DeletedAt = null;
+        application.DeleteReason = null;
+        application.DeletedBy = null;
+        application.DeletedByUserId = null;
+        application.Status = "В ожидании";
+
+        await _context.SaveChangesAsync();
+        return true;
     }
 }
