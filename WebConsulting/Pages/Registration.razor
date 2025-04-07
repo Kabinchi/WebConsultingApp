@@ -2,6 +2,7 @@
 @using WebConsulting.Models
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject IEmailService EmailService
 
 <!DOCTYPE html>
 <html lang="en">
@@ -9,11 +10,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Регистрация | Reputation</title>
+    <title>Авторизация | Reputation</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        html,
-        body {
+        html, body {
             height: 100%;
             margin: 0;
         }
@@ -26,6 +26,27 @@
 
         main {
             flex-grow: 1;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            width: 100%;
+            max-width: 400px;
         }
     </style>
 </head>
@@ -69,36 +90,237 @@
                 {
                     <p class="text-red-500 text-sm mt-1">@ErrorMessage</p>
                 }
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between mb-4">
                     <button type="submit" class="bg-orange-500 text-white px-6 py-2 rounded hover:bg-orange-600">Вход</button>
                     <button type="button" @onclick="NavigateToRegistrationPage" class="text-orange-500 hover:text-orange-600">Регистрация</button>
+                </div>
+                <div class="text-center">
+                    <button type="button" @onclick="ShowForgotPasswordModal" class="text-blue-500 hover:text-blue-600 text-sm">Забыли пароль?</button>
                 </div>
             </form>
         </div>
     </main>
+
+    <!-- Модальное окно восстановления пароля -->
+    @if (showForgotPasswordModal)
+    {
+        <div class="modal-overlay">
+            <div class="modal-content">
+                @if (!codeSent)
+                {
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Восстановление пароля</h2>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Введите ваш email:</label>
+                        <input type="email" @bind="forgotPasswordEmail" class="w-full px-4 py-2 border rounded-md" />
+                        @if (!string.IsNullOrEmpty(forgotPasswordError))
+                        {
+                            <p class="text-red-500 text-sm mt-1">@forgotPasswordError</p>
+                        }
+                    </div>
+                    <div class="flex justify-end space-x-2">
+                        <button @onclick="CloseForgotPasswordModal" class="px-4 py-2 border rounded">Отмена</button>
+                        <button @onclick="SendResetCode" class="bg-blue-500 text-white px-4 py-2 rounded">Отправить код</button>
+                    </div>
+                }
+                else if (!passwordResetVerified)
+                {
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Подтверждение кода</h2>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Введите код из письма:</label>
+                        <input type="text" @bind="resetCode" class="w-full px-4 py-2 border rounded-md" />
+                        @if (!string.IsNullOrEmpty(resetCodeError))
+                        {
+                            <p class="text-red-500 text-sm mt-1">@resetCodeError</p>
+                        }
+                    </div>
+                    <div class="flex justify-end space-x-2">
+                        <button @onclick="CloseForgotPasswordModal" class="px-4 py-2 border rounded">Отмена</button>
+                        <button @onclick="VerifyResetCode" class="bg-blue-500 text-white px-4 py-2 rounded">Продолжить</button>
+                    </div>
+                }
+                else
+                {
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Новый пароль</h2>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Новый пароль:</label>
+                        <input type="password" @bind="newPassword" class="w-full px-4 py-2 border rounded-md" />
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Повторите пароль:</label>
+                        <input type="password" @bind="confirmPassword" class="w-full px-4 py-2 border rounded-md" />
+                        @if (!string.IsNullOrEmpty(passwordResetError))
+                        {
+                            <p class="text-red-500 text-sm mt-1">@passwordResetError</p>
+                        }
+                    </div>
+                    <div class="flex justify-end space-x-2">
+                        <button @onclick="CloseForgotPasswordModal" class="px-4 py-2 border rounded">Отмена</button>
+                        <button @onclick="ResetPassword" class="bg-blue-500 text-white px-4 py-2 rounded">Сохранить</button>
+                    </div>
+                }
+            </div>
+        </div>
+    }
 </body>
 
 </html>
 
 @code {
-
     private string Email { get; set; }
     private string Password { get; set; }
     private string ErrorMessage { get; set; }
     private string EmailError { get; set; }
     private string PasswordError { get; set; }
     private bool IsPasswordVisible { get; set; } = false;
-
     private string PasswordInputType => IsPasswordVisible ? "text" : "password";
+
+    // Восстановление пароля
+    private bool showForgotPasswordModal = false;
+    private string forgotPasswordEmail = "";
+    private string forgotPasswordError = "";
+    private bool codeSent = false;
+    private string resetCode = "";
+    private string generatedResetCode = "";
+    private string resetCodeError = "";
+    private bool passwordResetVerified = false;
+    private string newPassword = "";
+    private string confirmPassword = "";
+    private string passwordResetError = "";
+
+    private void ShowForgotPasswordModal()
+    {
+        showForgotPasswordModal = true;
+        codeSent = false;
+        passwordResetVerified = false;
+        forgotPasswordError = "";
+        resetCodeError = "";
+        passwordResetError = "";
+    }
+
+    private void CloseForgotPasswordModal()
+    {
+        showForgotPasswordModal = false;
+    }
+
+    private async Task SendResetCode()
+    {
+        if (string.IsNullOrEmpty(forgotPasswordEmail))
+        {
+            forgotPasswordError = "Введите email";
+            return;
+        }
+
+        if (!IsValidEmail(forgotPasswordEmail))
+        {
+            forgotPasswordError = "Email должен быть в домене mail.ru";
+            return;
+        }
+
+        try
+        {
+            using var context = new ConsultingDBContext();
+            var user = context.Users.FirstOrDefault(u => u.Email == forgotPasswordEmail);
+
+            if (user == null)
+            {
+                forgotPasswordError = "Пользователь с таким email не найден";
+                return;
+            }
+
+            // Генерируем случайный 6-значный код
+            var random = new Random();
+            generatedResetCode = random.Next(100000, 999999).ToString();
+
+            // Отправляем код на email
+            var success = await EmailService.SendConfirmationCodeAsync(forgotPasswordEmail, generatedResetCode);
+
+            if (success)
+            {
+                codeSent = true;
+                forgotPasswordError = "";
+            }
+            else
+            {
+                forgotPasswordError = "Не удалось отправить код. Попробуйте позже.";
+            }
+        }
+        catch (Exception ex)
+        {
+            forgotPasswordError = "Произошла ошибка: " + ex.Message;
+            Console.WriteLine(ex);
+        }
+    }
+
+    private void VerifyResetCode()
+    {
+        if (string.IsNullOrEmpty(resetCode))
+        {
+            resetCodeError = "Введите код";
+            return;
+        }
+
+        if (resetCode != generatedResetCode)
+        {
+            resetCodeError = "Неверный код";
+            return;
+        }
+
+        passwordResetVerified = true;
+        resetCodeError = "";
+    }
+
+    private async Task ResetPassword()
+    {
+        if (string.IsNullOrEmpty(newPassword) || string.IsNullOrEmpty(confirmPassword))
+        {
+            passwordResetError = "Заполните все поля";
+            return;
+        }
+
+        if (newPassword != confirmPassword)
+        {
+            passwordResetError = "Пароли не совпадают";
+            return;
+        }
+
+        if (!IsValidPassword(newPassword))
+        {
+            passwordResetError = "Пароль должен содержать хотя бы одну заглавную букву, цифру, специальный символ и только английские буквы.";
+            return;
+        }
+
+        try
+        {
+            using var context = new ConsultingDBContext();
+            var user = context.Users.FirstOrDefault(u => u.Email == forgotPasswordEmail);
+
+            if (user != null)
+            {
+                user.Password = newPassword;
+                await context.SaveChangesAsync();
+
+                // Закрываем модальное окно
+                showForgotPasswordModal = false;
+                await JSRuntime.InvokeVoidAsync("alert", "Пароль успешно изменен!");
+            }
+            else
+            {
+                passwordResetError = "Пользователь не найден";
+            }
+        }
+        catch (Exception ex)
+        {
+            passwordResetError = "Ошибка при изменении пароля: " + ex.Message;
+            Console.WriteLine(ex);
+        }
+    }
 
     private async Task HandleLogin()
     {
-        // Сброс ошибок
         EmailError = string.Empty;
         PasswordError = string.Empty;
         ErrorMessage = string.Empty;
 
-        // Проверка на заполненность полей
         if (string.IsNullOrEmpty(Email))
         {
             EmailError = "E-mail обязателен";
