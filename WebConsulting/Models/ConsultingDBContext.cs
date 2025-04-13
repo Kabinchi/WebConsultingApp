@@ -31,7 +31,7 @@ public partial class ConsultingDBContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Data Source=ALICE\\MSSQLSERVER01;Initial Catalog=ConsultingDB3;Integrated Security=True;Encrypt=False");
+        => optionsBuilder.UseSqlServer("Data Source=ALICE\\MSSQLSERVER01;Initial Catalog=ConsultingDB5;Integrated Security=True;Encrypt=False");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -56,7 +56,7 @@ public partial class ConsultingDBContext : DbContext
             entity.HasOne(d => d.Application).WithMany(p => p.ApplicationServices).HasConstraintName("FK__Applicati__Appli__47DBAE45");
 
             entity.HasOne(d => d.Service).WithMany(p => p.ApplicationServices)
-                .OnDelete(DeleteBehavior.ClientSetNull)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK__Applicati__Servi__48CFD27E");
         });
 

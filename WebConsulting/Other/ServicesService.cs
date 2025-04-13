@@ -27,9 +27,11 @@ namespace WebConsulting.Other
             }
         }
 
-        public async Task<Service> GetServiceByIdAsync(int serviceId)
+        public async Task<Service> GetServiceByIdAsync(int id)
         {
-            return await _context.Services.FindAsync(serviceId);
+            return await _context.Services
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Id == id);
         }
 
         public async Task AddServiceAsync(Service newService)
@@ -40,7 +42,15 @@ namespace WebConsulting.Other
 
         public async Task UpdateServiceAsync(Service updatedService)
         {
-            _context.Services.Update(updatedService);
+            var existingService = await _context.Services.FindAsync(updatedService.Id);
+
+            if (existingService == null)
+            {
+                throw new ArgumentException("Услуга не найдена");
+            }
+
+            _context.Entry(existingService).CurrentValues.SetValues(updatedService);
+
             await _context.SaveChangesAsync();
         }
     }

@@ -20,7 +20,6 @@
     private string UserRole { get; set; } = "Client";
     private bool isInitialized = false;
 
-    // Для выбора нескольких услуг
     private List<int> selectedServiceIds = new List<int>();
     private Dictionary<int, int> serviceQuantities = new Dictionary<int, int>();
     private Dictionary<int, string> serviceNotes = new Dictionary<int, string>();
@@ -154,11 +153,14 @@
     {
         try
         {
-            var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Вы уверены, что хотите удалить эту услугу?");
+            var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
+                "Вы уверены, что хотите удалить эту услугу? Все связанные записи в заявках также будут удалены.");
+
             if (confirmed)
             {
                 await ServicesService.DeleteServiceAsync(serviceId);
                 services = await ServicesService.GetAllServicesAsync();
+                await ShowAlert("Услуга и все связанные записи успешно удалены!");
             }
         }
         catch (Exception ex)
@@ -215,9 +217,19 @@
     {
         try
         {
-            await ServicesService.UpdateServiceAsync(editingService);
+            var updatedService = new Service
+                {
+                    Id = editingService.Id,
+                    Name = editingService.Name,
+                    Description = editingService.Description,
+                    Price = editingService.Price,
+                    Category = editingService.Category
+                };
+
+            await ServicesService.UpdateServiceAsync(updatedService);
             services = await ServicesService.GetAllServicesAsync();
             showEditModal = false;
+            await ShowAlert("Услуга успешно обновлена!");
         }
         catch (Exception ex)
         {
@@ -377,7 +389,6 @@
         }
     }
 
-    <!-- Модальные окна остаются без изменений -->
     @if (showAddModal)
     {
         <div class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center p-4 z-50">
