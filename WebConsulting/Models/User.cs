@@ -33,6 +33,17 @@ public partial class User
     [StringLength(20)]
     public string PhoneNumber { get; set; }
 
+    [Column(TypeName = "datetime")]
+    public DateTime? DeletedAt { get; set; }
+
+    public bool IsDeleted { get; set; }
+
+    [StringLength(200)]
+    public string DeleteReason { get; set; }
+
+    [StringLength(50)]
+    public string DeletedBy { get; set; }
+
     [InverseProperty("User")]
     public virtual ICollection<Application> Applications { get; set; } = new List<Application>();
 
