@@ -5,6 +5,7 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @inject IEmailService EmailService
+@using System.Linq
 
 <!DOCTYPE html>
 <html lang="ru">
@@ -14,6 +15,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Профиль администратора</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/js/charts.js"></script>
     <style>
         html,
         body {
@@ -50,26 +53,6 @@
             max-width: 200px;
         }
 
-        .filter-dropdown {
-            position: relative;
-            display: inline-block;
-        }
-
-        .filter-dropdown-content {
-            display: none;
-            position: absolute;
-            background-color: #f9f9f9;
-            min-width: 160px;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-            z-index: 1;
-            padding: 12px;
-            border-radius: 4px;
-        }
-
-        .filter-dropdown:hover .filter-dropdown-content {
-            display: block;
-        }
-
         .action-buttons {
             display: flex;
             flex-direction: column;
@@ -94,12 +77,141 @@
             z-index: 1000;
         }
 
+        .user-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
         .modal-content {
             background-color: white;
             padding: 2rem;
             border-radius: 0.5rem;
             width: 100%;
-            max-width: 400px;
+            max-width: 600px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 2rem;
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+            .stat-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+            color: #3b82f6;
+        }
+
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .chart-type-selector {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .chart-type-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            border: 1px solid #e5e7eb;
+            background: white;
+            transition: all 0.2s;
+        }
+
+            .chart-type-btn:hover {
+                background: #f3f4f6;
+            }
+
+            .chart-type-btn.active {
+                background: #3b82f6;
+                color: white;
+                border-color: #3b82f6;
+            }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            color: #1f2937;
+        }
+
+        .chart-wrapper {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .stat-card.green .stat-value {
+            color: #10b981;
+        }
+
+        .stat-card.orange .stat-value {
+            color: #f59e0b;
+        }
+
+        .stat-card.red .stat-value {
+            color: #ef4444;
+        }
+
+        .stat-card.purple .stat-value {
+            color: #8b5cf6;
         }
     </style>
 </head>
@@ -127,9 +239,13 @@
                         @onclick="() => ShowTab(1)">
                     Архив заявок
                 </button>
-                <button class="w-full py-2 rounded @GetTabClass(activeTab == 2)"
+                <button class="w-full py-2 mb-4 rounded @GetTabClass(activeTab == 2)"
                         @onclick="() => ShowTab(2)">
                     Профиль
+                </button>
+                <button class="w-full py-2 rounded @GetTabClass(activeTab == 3)"
+                        @onclick="() => ShowTab(3)">
+                    Статистика
                 </button>
             </div>
 
@@ -420,14 +536,97 @@
                         }
                     </div>
                 }
+                else if (activeTab == 3)
+                {
+                    <!-- Вкладка статистики для администратора -->
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">Статистика заявок</h2>
+
+                        <!-- Карточки с основной статистикой -->
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value">@totalApplications</div>
+                                <div class="stat-label">Всего заявок</div>
+                            </div>
+                            <div class="stat-card green">
+                                <div class="stat-value">@completedApplications</div>
+                                <div class="stat-label">Выполнено</div>
+                            </div>
+                            <div class="stat-card orange">
+                                <div class="stat-value">@pendingApplications</div>
+                                <div class="stat-label">В ожидании</div>
+                            </div>
+                            <div class="stat-card red">
+                                <div class="stat-value">@archivedApplicationsCount</div>
+                                <div class="stat-label">Отменено</div>
+                            </div>
+                            <div class="stat-card purple">
+                                <div class="stat-value">@servicesCount</div>
+                                <div class="stat-label">Услуг в системе</div>
+                            </div>
+                        </div>
+
+                        <!-- График статусов заявок -->
+                        <div class="chart-wrapper">
+                            <h3 class="section-title">Статусы заявок</h3>
+                            <div class="chart-type-selector">
+                                <button class="chart-type-btn @(statusChartType == "pie" ? "active" : "")"
+                                        @onclick="@(() => ChangeStatusChartType("pie"))">
+                                    Круговая
+                                </button>
+                                <button class="chart-type-btn @(statusChartType == "bar" ? "active" : "")"
+                                        @onclick="@(() => ChangeStatusChartType("bar"))">
+                                    Столбчатая
+                                </button>
+                                <button class="chart-type-btn @(statusChartType == "doughnut" ? "active" : "")"
+                                        @onclick="@(() => ChangeStatusChartType("doughnut"))">
+                                    Кольцевая
+                                </button>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="statusChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- График популярности услуг -->
+                        <div class="chart-wrapper">
+                            <h3 class="section-title">Популярность услуг (Топ-10)</h3>
+                            <div class="chart-type-selector">
+                                <button class="chart-type-btn @(servicesChartType == "bar" ? "active" : "")"
+                                        @onclick="@(() => ChangeServicesChartType("bar"))">
+                                    Столбчатая
+                                </button>
+                                <button class="chart-type-btn @(servicesChartType == "line" ? "active" : "")"
+                                        @onclick="@(() => ChangeServicesChartType("line"))">
+                                    Линейная
+                                </button>
+                                <button class="chart-type-btn @(servicesChartType == "polarArea" ? "active" : "")"
+                                        @onclick="@(() => ChangeServicesChartType("polarArea"))">
+                                    Полярная
+                                </button>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="servicesChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- График динамики заявок -->
+                        <div class="chart-wrapper">
+                            <h3 class="section-title">Динамика заявок за последние 6 месяцев</h3>
+                            <div class="chart-container">
+                                <canvas id="applicationsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                }
             </div>
         </div>
     </main>
 
     @if (showCancelDialog)
     {
-        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white p-6 rounded-lg max-w-md w-full">
+        <div class="modal-overlay">
+            <div class="modal-content">
                 <h3 class="text-lg font-bold mb-4">Отмена заявки</h3>
                 <textarea @bind="cancelReason" class="w-full p-2 border rounded mb-4"
                           placeholder="Укажите причину отмены" rows="4"></textarea>
@@ -557,6 +756,46 @@
     private string archiveSearchText = "";
     private string archiveSearchColumn = "";
 
+    // Для статистики
+    private int totalApplications;
+    private int completedApplications;
+    private int pendingApplications;
+    private int archivedApplicationsCount;
+    private int servicesCount;
+
+    // Типы графиков
+    private string statusChartType = "pie";
+    private string servicesChartType = "bar";
+
+    // Данные для графиков
+    private Dictionary<string, int> statusStats = new();
+    private Dictionary<string, int> servicesStats = new();
+    private Dictionary<string, int> monthlyApplications = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            user = await DbContext.Users.FirstOrDefaultAsync(u => u.Role == "Admin") ?? new User();
+            services = await DbContext.Services.ToListAsync();
+            await LoadApplications();
+            await LoadArchivedApplications();
+            await LoadStatistics();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка при загрузке данных: {ex.Message}");
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender || activeTab == 3)
+        {
+            await RenderCharts();
+        }
+    }
+
     private string GetNamePart(string deletedBy)
     {
         if (string.IsNullOrEmpty(deletedBy)) return "";
@@ -569,21 +808,6 @@
         if (string.IsNullOrEmpty(deletedBy)) return "";
         var lastBracket = deletedBy.LastIndexOf('(');
         return lastBracket > 0 ? deletedBy.Substring(lastBracket) : "";
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            user = await DbContext.Users.FirstOrDefaultAsync(u => u.Role == "Admin") ?? new User();
-            services = await DbContext.Services.ToListAsync();
-            await LoadApplications();
-            await LoadArchivedApplications();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Ошибка при загрузке данных: {ex.Message}");
-        }
     }
 
     private async Task LoadApplications()
@@ -608,8 +832,163 @@
         filteredArchivedApplications = archivedApplications;
     }
 
+    private async Task LoadStatistics()
+    {
+        // Основная статистика
+        totalApplications = await DbContext.Applications.CountAsync();
+        completedApplications = await DbContext.Applications.CountAsync(a => a.Status == "Выполнено");
+        pendingApplications = await DbContext.Applications.CountAsync(a => a.Status == "В ожидании");
+        archivedApplicationsCount = await DbContext.Applications.CountAsync(a => a.IsDeleted);
+        servicesCount = await DbContext.Services.CountAsync();
+
+        // Статистика по статусам заявок
+        statusStats = await DbContext.Applications
+            .GroupBy(a => a.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Status, x => x.Count);
+
+        // Статистика по популярности услуг
+        servicesStats = await DbContext.ApplicationServices
+            .Include(a => a.Service)
+            .GroupBy(a => a.Service.Name)
+            .Select(g => new { Service = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count)
+            .ToDictionaryAsync(x => x.Service, x => x.Count);
+
+        // Динамика заявок по месяцам
+        var now = DateTime.Now;
+        var sixMonthsAgo = now.AddMonths(-5); // 6 месяцев включая текущий
+
+        // Создаем все месяцы в диапазоне
+        var allMonths = Enumerable.Range(0, 6)
+            .Select(offset => sixMonthsAgo.AddMonths(offset))
+            .Select(date => new DateTime(date.Year, date.Month, 1))
+            .ToList();
+
+        // Получаем данные из БД
+        var dbData = await DbContext.Applications
+            .Where(a => a.CreatedAt >= sixMonthsAgo)
+            .GroupBy(a => new { a.CreatedAt.Year, a.CreatedAt.Month })
+            .Select(g => new
+            {
+                Date = new DateTime(g.Key.Year, g.Key.Month, 1),
+                Count = g.Count()
+            })
+            .ToListAsync();
+
+        // Собираем итоговые данные, включая месяцы с нулевыми значениями
+        monthlyApplications = allMonths
+            .GroupJoin(dbData,
+                month => month,
+                dbItem => dbItem.Date,
+                (month, dbItems) => new
+                {
+                    Month = month.ToString("MMMM yyyy"),
+                    Count = dbItems.Sum(x => x?.Count ?? 0)
+                })
+            .ToDictionary(x => x.Month, x => x.Count);
+    }
+
+    private async Task RenderCharts()
+    {
+        if (activeTab != 3) return;
+
+        try
+        {
+            // Уничтожаем старые графики по их canvas ID и ждем завершения
+            await Task.WhenAll(
+                JSRuntime.InvokeVoidAsync("destroyChart", "statusChart").AsTask(),
+                JSRuntime.InvokeVoidAsync("destroyChart", "servicesChart").AsTask(),
+                JSRuntime.InvokeVoidAsync("destroyChart", "applicationsChart").AsTask()
+            );
+
+            // Даем небольшой таймаут для гарантированного освобождения canvas
+            await Task.Delay(100);
+
+            var colors = new
+            {
+                blue = "rgba(59, 130, 246, 0.8)",
+                green = "rgba(16, 185, 129, 0.8)",
+                orange = "rgba(245, 158, 11, 0.8)",
+                red = "rgba(239, 68, 68, 0.8)",
+                purple = "rgba(139, 92, 246, 0.8)",
+                gray = "rgba(107, 114, 128, 0.8)"
+            };
+
+            // График статусов заявок
+            var statusLabels = statusStats.Keys.ToArray();
+            var statusData = statusStats.Values.ToArray();
+            var statusColors = new[] { colors.blue, colors.green, colors.orange, colors.red, colors.gray };
+
+            await JSRuntime.InvokeVoidAsync(
+                "renderChart",
+                "statusChart",
+                statusChartType,
+                "Распределение заявок по статусам",
+                statusLabels,
+                statusData,
+                statusColors
+            );
+
+            // График популярности услуг (только топ-10)
+            var topServices = servicesStats.Take(10).ToDictionary(x => x.Key, x => x.Value);
+            var serviceLabels = topServices.Keys.Select(s => s.Length > 20 ? s.Substring(0, 20) + "..." : s).ToArray();
+            var serviceData = topServices.Values.ToArray();
+            var serviceColors = Enumerable.Range(0, topServices.Count)
+                .Select(i => $"hsl({(i * 360 / topServices.Count)}, 70%, 50%)")
+                .ToArray();
+
+            await JSRuntime.InvokeVoidAsync(
+                "renderChart",
+                "servicesChart",
+                servicesChartType,
+                "Популярные услуги",
+                serviceLabels,
+                serviceData,
+                serviceColors
+            );
+
+            // График динамики заявок по месяцам
+            var monthLabels = monthlyApplications.Keys.ToArray();
+            var monthData = monthlyApplications.Values.ToArray();
+
+            await JSRuntime.InvokeVoidAsync(
+                "renderLineChart",
+                "applicationsChart",
+                "Динамика заявок",
+                monthLabels,
+                monthData,
+                "rgba(59, 130, 246, 0.8)"
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка при отрисовке графиков: {ex.Message}");
+        }
+    }
+
+    private async Task ChangeStatusChartType(string type)
+    {
+        statusChartType = type;
+        await RenderCharts();
+    }
+
+    private async Task ChangeServicesChartType(string type)
+    {
+        servicesChartType = type;
+        await RenderCharts();
+    }
+
     private void ShowTab(int tabIndex)
     {
+        // Уничтожаем графики при уходе со вкладки статистики
+        if (activeTab == 3 && tabIndex != 3)
+        {
+            _ = JSRuntime.InvokeVoidAsync("destroyChart", "statusChart");
+            _ = JSRuntime.InvokeVoidAsync("destroyChart", "servicesChart");
+            _ = JSRuntime.InvokeVoidAsync("destroyChart", "applicationsChart");
+        }
+
         activeTab = tabIndex;
         if (tabIndex == 0) ApplyFilters();
         else if (tabIndex == 1) ApplyArchiveFilters();
@@ -675,7 +1054,8 @@
                                   a.CompanyAddress.Contains(searchText, StringComparison.OrdinalIgnoreCase)),
                         "Description" => query.Where(a => a.Description != null &&
                                   a.Description.Contains(searchText, StringComparison.OrdinalIgnoreCase)),
-                        "ServiceName" => query.Where(a => a.ApplicationServices.Any(appService => appService.Service.Name != null &&
+                        "ServiceName" => query.Where(a => a.ApplicationServices.Any(appService =>
+                                  appService.Service.Name != null &&
                                   appService.Service.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase))),
                         "CreatedAt" => query.Where(a => a.CreatedAt.ToString("dd.MM.yyyy").Contains(searchText)),
                         "Status" => query.Where(a => a.Status != null &&
@@ -899,7 +1279,6 @@
             StateHasChanged();
         }
     }
-
 
     private async Task SaveStatus(Application app)
     {
