@@ -1,6 +1,7 @@
 ﻿@page "/pUser"
+@using Microsoft.EntityFrameworkCore
 @using WebConsulting.Models
-@inject UserService UserService
+@inject ConsultingDBContext DbContext
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @inject IEmailService EmailService
@@ -66,6 +67,23 @@
             border-radius: 0.5rem;
             width: 100%;
             max-width: 400px;
+        }
+
+        .filter-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-item {
+            flex: 1 1 200px;
+        }
+
+        .truncate {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
     </style>
 </head>
@@ -169,9 +187,38 @@
                 {
                     <div>
                         <h2 class="text-xl font-bold text-gray-800 mb-4">Мои заявки</h2>
-                        @if (applications.Count == 0)
+
+                        <div class="filter-container">
+                            <div class="filter-item">
+                                <input type="text" class="w-full p-2 border border-gray-300 rounded"
+                                       placeholder="Поиск..." @bind="searchText" @bind:event="oninput" />
+                            </div>
+                            <div class="filter-item">
+                                <select class="w-full p-2 border border-gray-300 rounded" @bind="statusFilter">
+                                    <option value="">Все статусы</option>
+                                    <option value="В ожидании">В ожидании</option>
+                                    <option value="Ожидайте звонок">Ожидайте звонок</option>
+                                    <option value="Выполнено">Выполнено</option>
+                                    <option value="Отменено">Отменено</option>
+                                </select>
+                            </div>
+                            <div class="filter-item">
+                                <select class="w-full p-2 border border-gray-300 rounded" @bind="dateSort">
+                                    <option value="newest">Сначала новые</option>
+                                    <option value="oldest">Сначала старые</option>
+                                </select>
+                            </div>
+                            <button @onclick="ApplyFilters" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                                Применить
+                            </button>
+                            <button @onclick="ResetFilters" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                                Сбросить
+                            </button>
+                        </div>
+
+                        @if (filteredApplications.Count == 0)
                         {
-                            <p class="text-gray-600">У вас нет активных заявок.</p>
+                            <p class="text-gray-600">@(applications.Count == 0 ? "У вас нет активных заявок." : "Заявки не найдены.")</p>
                         }
                         else
                         {
@@ -188,7 +235,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @foreach (var app in applications)
+                                        @foreach (var app in filteredApplications)
                                         {
                                             <tr class="border-t">
                                                 <td class="px-2 py-2 text-sm">@app.CompanyName</td>
@@ -325,6 +372,7 @@
 @code {
     private User user = new User();
     private List<Application> applications = new();
+    private List<Application> filteredApplications = new();
     private bool isProfileTab = true;
     private bool isFullNameDisabled = true;
     private bool isPhoneDisabled = true;
@@ -334,7 +382,10 @@
     private string cancelReason = string.Empty;
     private int currentUserId;
 
-    // Для изменения пароля
+    private string searchText = "";
+    private string statusFilter = "";
+    private string dateSort = "newest";
+
     private bool showChangePasswordModal = false;
     private string changePasswordEmail = "";
     private string changePasswordError = "";
@@ -348,16 +399,64 @@
     private string newPasswordError = "";
     private bool showNewPassword = false;
 
+    private string saveMessage = "";
+    private bool saveSuccess = false;
+
     protected override async Task OnInitializedAsync()
     {
         var userId = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "userId");
         if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out int id))
         {
             currentUserId = id;
-            user = UserService.GetUserById(currentUserId);
-            applications = await UserService.GetActiveApplicationsByUserId(currentUserId);
+            user = await DbContext.Users.FirstOrDefaultAsync(u => u.Id == currentUserId);
+            await LoadApplications();
             changePasswordEmail = user.Email;
         }
+    }
+
+    private async Task LoadApplications()
+    {
+        applications = await DbContext.Applications
+            .Where(a => a.UserId == currentUserId)
+            .Include(a => a.ApplicationServices)
+            .ThenInclude(s => s.Service)
+            .ToListAsync();
+
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        var query = applications.AsQueryable();
+
+        if (!string.IsNullOrEmpty(searchText))
+        {
+            query = query.Where(a =>
+                a.CompanyName.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                a.CompanyAddress.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                (a.Description != null && a.Description.Contains(searchText, StringComparison.OrdinalIgnoreCase)) ||
+                a.ApplicationServices.Any(s => s.Service.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            );
+        }
+
+        if (!string.IsNullOrEmpty(statusFilter))
+        {
+            query = query.Where(a => a.Status == statusFilter);
+        }
+
+        query = dateSort == "newest"
+            ? query.OrderByDescending(a => a.CreatedAt)
+            : query.OrderBy(a => a.CreatedAt);
+
+        filteredApplications = query.ToList();
+    }
+
+    private void ResetFilters()
+    {
+        searchText = "";
+        statusFilter = "";
+        dateSort = "newest";
+        ApplyFilters();
     }
 
     private string FormatPhoneNumber(string phone)
@@ -416,17 +515,28 @@
     {
         if (applicationToCancel != null && !string.IsNullOrWhiteSpace(cancelReason))
         {
-            var success = await UserService.CancelApplication(
-                applicationToCancel.Id,
-                cancelReason,
-                "user",
-                currentUserId);
+            applicationToCancel.Status = "Отменено";
+            applicationToCancel.IsDeleted = true;
+            applicationToCancel.DeletedAt = DateTime.Now;
+            applicationToCancel.DeleteReason = cancelReason;
+            applicationToCancel.DeletedBy = $"{user.FullName} ({user.Role})";
 
-            if (success)
+            try
             {
-                applications = await UserService.GetActiveApplicationsByUserId(currentUserId);
+                DbContext.Applications.Update(applicationToCancel);
+                await DbContext.SaveChangesAsync();
+                await LoadApplications();
                 CloseCancelDialog();
+                await JSRuntime.InvokeVoidAsync("alert", "Заявка успешно отменена");
             }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"Ошибка: {ex.Message}");
+            }
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Пожалуйста, укажите причину отмены");
         }
     }
 
@@ -434,8 +544,6 @@
     private void ShowApplicationsTab() => isProfileTab = false;
     private void ToggleFullNameEdit() => isFullNameDisabled = !isFullNameDisabled;
     private void TogglePhoneEdit() => isPhoneDisabled = !isPhoneDisabled;
-    private string saveMessage = "";
-    private bool saveSuccess = false;
 
     private async Task SaveChanges()
     {
@@ -449,22 +557,16 @@
 
         try
         {
-            // Убираем присваивание, так как UpdateUser возвращает void
-            await UserService.UpdateUser(user);
+            DbContext.Users.Update(user);
+            await DbContext.SaveChangesAsync();
 
             saveMessage = "Изменения успешно сохранены!";
             saveSuccess = true;
-
-            // Обновляем данные пользователя без перезагрузки страницы
-            user = UserService.GetUserById(currentUserId);
-
-            // Закрываем режим редактирования
             isFullNameDisabled = true;
             isPhoneDisabled = true;
 
             StateHasChanged();
 
-            // Очищаем сообщение через 3 секунды
             await Task.Delay(3000);
             saveMessage = "";
             StateHasChanged();
@@ -479,11 +581,11 @@
 
     private async Task Logout()
     {
+        await JSRuntime.InvokeVoidAsync("sessionStorage.removeItem", "userId");
         await JSRuntime.InvokeVoidAsync("sessionStorage.removeItem", "userRole");
         NavigationManager.NavigateTo("/");
     }
 
-    // Методы для изменения пароля
     private void ShowChangePasswordModal()
     {
         showChangePasswordModal = true;
@@ -516,11 +618,9 @@
 
         try
         {
-            // Генерируем случайный 6-значный код
             var random = new Random();
             generatedPasswordChangeCode = random.Next(100000, 999999).ToString();
 
-            // Отправляем код на email
             var success = await EmailService.SendConfirmationCodeAsync(changePasswordEmail, generatedPasswordChangeCode);
 
             if (success)
@@ -581,7 +681,8 @@
         try
         {
             user.Password = newPassword;
-            await UserService.UpdateUser(user);
+            DbContext.Users.Update(user);
+            await DbContext.SaveChangesAsync();
 
             CloseChangePasswordModal();
             await JSRuntime.InvokeVoidAsync("alert", "Пароль успешно изменен!");

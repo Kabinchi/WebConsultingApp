@@ -41,7 +41,7 @@ public partial class Application
     [StringLength(200)]
     public string DeleteReason { get; set; }
 
-    [StringLength(20)]
+    [StringLength(100)]
     public string DeletedBy { get; set; }
 
     [StringLength(50)]

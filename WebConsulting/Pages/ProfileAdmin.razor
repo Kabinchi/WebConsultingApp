@@ -300,7 +300,6 @@
                                     <tbody>
                                         @foreach (var app in filteredArchivedApplications)
                                         {
-                                            var firstService = app.ApplicationServices.FirstOrDefault()?.Service;
                                             <tr class="border-t">
                                                 <td class="px-2 py-2 text-sm">@app.User?.FullName</td>
                                                 <td class="px-2 py-2 text-sm">@FormatPhoneNumber(app.User?.PhoneNumber)</td>
@@ -322,7 +321,12 @@
                                                 </td>
                                                 <td class="px-2 py-2 text-sm">@app.CreatedAt.ToString("dd.MM.yyyy")</td>
                                                 <td class="px-2 py-2 text-sm">@app.DeletedAt?.ToString("dd.MM.yyyy")</td>
-                                                <td class="px-2 py-2 text-sm">@app.DeletedBy</td>
+                                                <td class="px-2 py-2">
+                                                    <div class="text-sm max-w-[200px] flex flex-col">
+                                                        <span>@GetNamePart(app.DeletedBy)</span>
+                                                        <span class="text-gray-500">@GetRolePart(app.DeletedBy)</span>
+                                                    </div>
+                                                </td>
                                                 <td class="px-2 py-2 text-sm">@app.DeleteReason</td>
                                                 <td class="px-2 py-2 text-sm">
                                                     <button @onclick="() => RestoreApplication(app)" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 text-sm">
@@ -527,11 +531,9 @@
     private Application applicationToCancel;
     private string cancelReason = string.Empty;
 
-    // Для сообщений о сохранении
     private string saveMessage = "";
     private bool saveSuccess = false;
 
-    // Для изменения пароля
     private bool showChangePasswordModal = false;
     private string changePasswordEmail = "";
     private string changePasswordError = "";
@@ -554,6 +556,20 @@
 
     private string archiveSearchText = "";
     private string archiveSearchColumn = "";
+
+    private string GetNamePart(string deletedBy)
+    {
+        if (string.IsNullOrEmpty(deletedBy)) return "";
+        var lastBracket = deletedBy.LastIndexOf('(');
+        return lastBracket > 0 ? deletedBy.Substring(0, lastBracket).Trim() : deletedBy;
+    }
+
+    private string GetRolePart(string deletedBy)
+    {
+        if (string.IsNullOrEmpty(deletedBy)) return "";
+        var lastBracket = deletedBy.LastIndexOf('(');
+        return lastBracket > 0 ? deletedBy.Substring(lastBracket) : "";
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -757,7 +773,7 @@
             applicationToCancel.IsDeleted = true;
             applicationToCancel.DeletedAt = DateTime.Now;
             applicationToCancel.DeleteReason = cancelReason;
-            applicationToCancel.DeletedBy = "admin";
+            applicationToCancel.DeletedBy = $"{user.FullName} ({user.Role})";
             applicationToCancel.Status = "Отказано";
 
             try
@@ -868,12 +884,10 @@
             isFullNameDisabled = true;
             isPhoneDisabled = true;
 
-            // Обновляем данные пользователя
             user = await DbContext.Users.FirstOrDefaultAsync(u => u.Id == user.Id);
 
             StateHasChanged();
 
-            // Автоматически скрываем сообщение через 3 секунды
             await Task.Delay(3000);
             saveMessage = "";
             StateHasChanged();
@@ -907,7 +921,6 @@
         NavigationManager.NavigateTo("/");
     }
 
-    // Методы для изменения пароля
     private void ShowChangePasswordModal()
     {
         showChangePasswordModal = true;
@@ -916,7 +929,7 @@
         changePasswordError = "";
         passwordChangeCodeError = "";
         newPasswordError = "";
-        changePasswordEmail = user.Email; // Устанавливаем email текущего пользователя
+        changePasswordEmail = user.Email;
     }
 
     private void CloseChangePasswordModal()
@@ -940,11 +953,9 @@
 
         try
         {
-            // Генерируем случайный 6-значный код
             var random = new Random();
             generatedPasswordChangeCode = random.Next(100000, 999999).ToString();
 
-            // Отправляем код на email
             var success = await EmailService.SendConfirmationCodeAsync(changePasswordEmail, generatedPasswordChangeCode);
 
             if (success)
