@@ -39,16 +39,7 @@
                         Электронная почта:
                         <a href="mailto:info@Reputation.ru" class="text-orange-500 hover:underline">info@Reputation.ru</a>
                     </p>
-                    <p class="text-gray-600">Адрес: </p>
-
-                    <div class="space-y-4 mt-6">
-                        <button onclick="location.href='mailto:info@Reputation.ru';" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
-                            Написать на почту
-                        </button>
-                        <button onclick="openCallbackModal();" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
-                            Перезвонить
-                        </button>
-                    </div>
+                    <p class="text-gray-600">Адрес: Владимир</p>
                 </div>
 
                 <div class="w-full h-96 px-4 lg:px-0">
@@ -60,38 +51,6 @@
         </section>
     </main>
 
-    <div id="callbackModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden">
-        <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Перезвонить</h3>
-            <form action="#" method="POST" class="space-y-4">
-                <div>
-                    <label for="name" class="block text-gray-600">Имя</label>
-                    <input type="text" id="name" name="name"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
-                </div>
-                <div>
-                    <label for="phone" class="block text-gray-600">Номер телефона</label>
-                    <input type="tel" id="phone" name="phone"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
-                </div>
-                <div class="flex justify-end space-x-4">
-                    <button type="button" onclick="closeCallbackModal();" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Отмена</button>
-                    <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">Отправить</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        function openCallbackModal() {
-            document.getElementById('callbackModal').classList.remove('hidden');
-        }
-
-        function closeCallbackModal() {
-            document.getElementById('callbackModal').classList.add('hidden');
-        }
-    </script>
 </body>
 
 </html>
-
