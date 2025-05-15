@@ -13,7 +13,7 @@
         @if (IsAdmin)
         {
             <button class="bg-orange-500 text-white px-6 py-2 rounded hover:bg-orange-600"
-                    @onclick="OpenAddBlock">
+            @onclick="OpenAddBlock">
                 + Добавить блок
             </button>
         }
@@ -33,13 +33,13 @@
                             {
                                 <div class="flex items-center justify-between">
                                     <button class="flex-grow text-left p-2 bg-orange-100 hover:bg-orange-200 rounded"
-                                            @onclick="() => OpenDetails(svc)">
+                                    @onclick="() => OpenDetails(svc)">
                                         @svc.Title
                                     </button>
                                     @if (IsAdmin)
                                     {
                                         <button class="ml-2 text-red-500 hover:text-red-700"
-                                                @onclick="() => ConfirmAndDeleteService(svc.Id)">
+                                        @onclick="() => ConfirmAndDeleteService(svc.Id)">
                                             ×
                                         </button>
                                     }
@@ -49,7 +49,7 @@
                         @if (IsAdmin)
                         {
                             <button class="mt-4 text-orange-500 hover:text-orange-600"
-                                    @onclick="() => OpenAddService(block)">
+                            @onclick="() => OpenAddService(block)">
                                 + Добавить услугу
                             </button>
                         }
@@ -57,7 +57,7 @@
                     @if (IsAdmin)
                     {
                         <button class="absolute top-2 right-2 text-red-500 hover:text-red-700"
-                                @onclick="() => ConfirmAndDeleteBlock(block.Id)">
+                        @onclick="() => ConfirmAndDeleteBlock(block.Id)">
                             ×
                         </button>
                     }
@@ -140,7 +140,10 @@
                     else
                     {
                         <p class="text-gray-700">@editingService.Description</p>
-                        <button class="absolute top-2 right-2 text-blue-500 hover:text-blue-700 text-sm" @onclick="EditDescription">Редактировать</button>
+                        @if (IsAdmin)
+                        {
+                            <button class="absolute top-2 right-2 text-blue-500 hover:text-blue-700 text-sm" @onclick="EditDescription">Редактировать</button>
+                        }
                     }
                 </div>
             </section>
@@ -154,7 +157,7 @@
                         {
                             <button class="py-2 px-4 rounded @(currentSection == sec
                              ? "bg-orange-500 text-white" : "bg-gray-100") hover:bg-orange-600"
-                                    @onclick="() => SelectSection(sec)">
+                            @onclick="() => SelectSection(sec)">
                                 @sec
                             </button>
                         }
@@ -172,15 +175,18 @@
                         {
                             <ul class="list-disc pl-5 space-y-1">
                                 @foreach (var line in CurrentSectionContent()
-                               .Split('\n')
-                               .Where(l => !string.IsNullOrWhiteSpace(l)))
+                             .Split('\n')
+                             .Where(l => !string.IsNullOrWhiteSpace(l)))
                                 {
                                     <li>@line</li>
                                 }
                             </ul>
-                            <button class="absolute top-2 right-2 text-blue-500 hover:text-blue-700 text-sm" @onclick="EditSection">
-                                Редактировать
-                            </button>
+                            @if (IsAdmin)
+                            {
+                                <button class="absolute top-2 right-2 text-blue-500 hover:text-blue-700 text-sm" @onclick="EditSection">
+                                    Редактировать
+                                </button>
+                            }
                         }
                     </div>
                 </div>
@@ -206,9 +212,12 @@
                                 <li>@line</li>
                             }
                         </ul>
-                        <button class="absolute top-2 right-2 text-blue-500 hover:text-blue-700 text-sm" @onclick="EditResults">
-                            Редактировать
-                        </button>
+                        @if (IsAdmin)
+                        {
+                            <button class="absolute top-2 right-2 text-blue-500 hover:text-blue-700 text-sm" @onclick="EditResults">
+                                Редактировать
+                            </button>
+                        }
                     }
                 </div>
             </section>
