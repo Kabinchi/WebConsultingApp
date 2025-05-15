@@ -450,44 +450,46 @@
                         }
                         else
                         {
-                            <div class="table-container">
-                                <table class="table-auto bg-white">
-                                    <thead class="bg-gray-200">
-                                        <tr>
-                                            <th class="px-2 py-2 text-sm">Имя</th>
-                                            <th class="px-2 py-2 text-sm">Почта</th>
-                                            <th class="px-2 py-2 text-sm">Роль</th>
-                                            <th class="px-2 py-2 text-sm">Дата удаления</th>
-                                            <th class="px-2 py-2 text-sm">Кто удалил</th>
-                                            <th class="px-2 py-2 text-sm">Причина</th>
-                                            <th class="px-2 py-2 text-sm">Действия</th>
+                        <div class="table-container">
+                            <table class="table-auto bg-white">
+                                <thead class="bg-gray-200">
+                                    <tr>
+                                        <th class="px-2 py-2 text-sm">Имя</th>
+                                        <th class="px-2 py-2 text-sm">Почта</th>
+                                        <th class="px-2 py-2 text-sm">Роль</th>
+                                        <th class="px-2 py-2 text-sm">Дата удаления</th>
+                                        <th class="px-2 py-2 text-sm">Кто удалил</th>
+                                        <th class="px-2 py-2 text-sm">Причина</th>
+                                        <th class="px-2 py-2 text-sm">Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var user in filteredArchivedUsers)
+                                    {
+                                        <tr class="border-t">
+                                            <!-- УБРАН КЛАСС deleted-user -->
+                                            <td class="px-2 py-2 text-sm">@user.FullName</td>
+                                            <td class="px-2 py-2 text-sm">@user.Email</td>
+                                            <td class="px-2 py-2 text-sm @GetRoleClass(user.Role)">@user.Role</td>
+                                            <td class="px-2 py-2 text-sm">@user.DeletedAt?.ToString("dd.MM.yyyy")</td>
+                                            <td class="px-2 py-2">
+                                                <div class="text-sm max-w-[200px] flex flex-col">
+                                                    <span>@GetNamePart(user.DeletedBy)</span>
+                                                    <span class="text-gray-500">@GetRolePart(user.DeletedBy)</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-2 py-2 text-sm">@user.DeleteReason</td>
+                                            <td class="px-2 py-2 text-sm">
+                                                <button @onclick="() => RestoreUser(user)"
+                                                        class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 text-sm">
+                                                    Восстановить
+                                                </button>
+                                            </td>
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var user in filteredArchivedUsers)
-                                        {
-                                            <tr class="border-t deleted-user">
-                                                <td class="px-2 py-2 text-sm">@user.FullName</td>
-                                                <td class="px-2 py-2 text-sm">@user.Email</td>
-                                                <td class="px-2 py-2 text-sm @GetRoleClass(user.Role)">@user.Role</td>
-                                                <td class="px-2 py-2 text-sm">@user.DeletedAt?.ToString("dd.MM.yyyy")</td>
-                                                <td class="px-2 py-2">
-                                                    <div class="text-sm max-w-[200px] flex flex-col">
-                                                        <span>@GetNamePart(user.DeletedBy)</span>
-                                                        <span class="text-gray-500">@GetRolePart(user.DeletedBy)</span>
-                                                    </div>
-                                                </td>
-                                                <td class="px-2 py-2 text-sm">@user.DeleteReason</td>
-                                                <td class="px-2 py-2 text-sm">
-                                                    <button @onclick="() => RestoreUser(user)" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 text-sm">
-                                                        Восстановить
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
                         }
                     </div>
                 }
