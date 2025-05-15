@@ -1,6 +1,10 @@
 ﻿@page "/"
 @inject IJSRuntime JSRuntime
 @layout MainLayout
+@implements IDisposable
+@using Microsoft.AspNetCore.Components.Forms
+@using WebConsulting.Models
+@inject ConsultingDBContext DbContext
 
 <!DOCTYPE html>
 <html lang="en">
@@ -11,6 +15,47 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 text-gray-800">
+
+    @if (showModal)
+    {
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Ответим на ваши вопросы</h3>
+                    <button @onclick="CloseModal" class="text-gray-500 hover:text-gray-700">&times;</button>
+                </div>
+                <p class="text-gray-600 mb-4">Наш консультант даст экспертный ответ.</p>
+
+                <EditForm Model="@formData" OnValidSubmit="HandleSubmit" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Имя *</label>
+                        <InputText @bind-Value="formData.Name"
+                                   class="w-full px-3 py-2 border rounded-md focus:ring-orange-500 focus:border-orange-500"
+                                   required />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Телефон *</label>
+                        <InputText @bind-Value="formData.Phone"
+                                   class="w-full px-3 py-2 border rounded-md focus:ring-orange-500 focus:border-orange-500"
+                                   required />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">E-mail *</label>
+                        <InputText @bind-Value="formData.Email"
+                                   class="w-full px-3 py-2 border rounded-md focus:ring-orange-500 focus:border-orange-500"
+                                   required />
+                    </div>
+
+                    <button type="submit"
+                            class="w-full bg-orange-500 text-white py-2 px-4 rounded-md hover:bg-orange-600 transition-colors">
+                        Задать вопрос
+                    </button>
+                </EditForm>
+            </div>
+        </div>
+    }
 
     <section class="bg-white py-16">
         <div class="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
@@ -44,6 +89,44 @@
             </div>
         </div>
     </section>
+
+    <section class="bg-white py-16">
+        <div class="container mx-auto max-w-2xl">
+            <div class="bg-gray-50 rounded-xl shadow-md p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Задать вопрос</h2>
+                <EditForm Model="@formData" OnValidSubmit="HandleSubmit" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Имя *</label>
+                            <InputText @bind-Value="formData.Name"
+                                       class="w-full px-3 py-2 border rounded-md focus:ring-orange-500 focus:border-orange-500"
+                                       required />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Телефон *</label>
+                            <InputText @bind-Value="formData.Phone"
+                                       class="w-full px-3 py-2 border rounded-md focus:ring-orange-500 focus:border-orange-500"
+                                       required />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">E-mail *</label>
+                        <InputText @bind-Value="formData.Email"
+                                   class="w-full px-3 py-2 border rounded-md focus:ring-orange-500 focus:border-orange-500"
+                                   required />
+                    </div>
+
+                    <button type="submit"
+                            class="w-full bg-orange-500 text-white py-2 px-4 rounded-md hover:bg-orange-600 transition-colors">
+                        Отправить вопрос
+                    </button>
+                </EditForm>
+            </div>
+        </div>
+    </section>
+
     <section class="bg-white py-16">
         <div class="container mx-auto text-center">
             <h2 class="text-3xl font-bold text-gray-800">Мы в цифрах</h2>
@@ -86,3 +169,67 @@
 
 </body>
 </html>
+
+@code {
+    private bool showModal = false;
+    private Timer timer;
+    private FormData formData = new FormData();
+
+    public class FormData
+    {
+        public string Name { get; set; }
+        public string Phone { get; set; }
+        public string Email { get; set; }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            timer = new Timer(_ =>
+            {
+                showModal = true;
+                InvokeAsync(StateHasChanged);
+            }, null, 60000, Timeout.Infinite);
+        }
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        timer?.Dispose();
+    }
+
+    @code {
+        private async Task HandleSubmit()
+        {
+            try
+            {
+                var guestApp = new GuestApplication
+                {
+                    FullName = formData.Name,
+                    Phone = formData.Phone,
+                    Email = formData.Email,
+                    CreatedAt = DateTime.Now
+                };
+
+                DbContext.GuestApplications.Add(guestApp);
+                await DbContext.SaveChangesAsync();
+
+                formData = new FormData();
+                showModal = false;
+                await JSRuntime.InvokeVoidAsync("alert", "Спасибо! Ваш вопрос отправлен.");
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"Ошибка: {ex.Message}");
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        timer?.Dispose();
+        GC.SuppressFinalize(this);
+    }
+}

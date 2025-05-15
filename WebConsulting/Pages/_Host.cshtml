@@ -28,5 +28,14 @@
     </div>
 
     <script src="_framework/blazor.server.js"></script>
+    <script>
+        window.editorUtils = {
+          exec: (cmd, value = null) => document.execCommand(cmd, false, value),
+          getHtml: (id) => document.getElementById(id).innerHTML,
+          setHtml: (id, html) => document.getElementById(id).innerHTML = html
+        };
+    </script>
+
 </body>
 </html>
+

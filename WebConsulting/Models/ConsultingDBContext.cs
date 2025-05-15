@@ -18,30 +18,28 @@ public partial class ConsultingDBContext : DbContext
     }
 
     public virtual DbSet<Application> Applications { get; set; }
-
     public virtual DbSet<ApplicationService> ApplicationServices { get; set; }
-
-    public virtual DbSet<Article> Articles { get; set; }
-
     public virtual DbSet<Review> Reviews { get; set; }
-
     public virtual DbSet<Service> Services { get; set; }
-
     public virtual DbSet<User> Users { get; set; }
 
+    // Новые сущности
+    public virtual DbSet<ServiceBlock> ServiceBlocks { get; set; }
+    public virtual DbSet<BlockService> BlockServices { get; set; }
+    public virtual DbSet<GuestApplication> GuestApplications { get; set; }
+
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Data Source=ALICE\\MSSQLSERVER01;Initial Catalog=ConsultingDB5;Integrated Security=True;Encrypt=False");
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code.
+        => optionsBuilder.UseSqlServer("Data Source=ALICE\\MSSQLSERVER01;Initial Catalog=ConsultingDB7;Integrated Security=True;Encrypt=False");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Application>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__Applicat__3214EC07DC5AFF44");
-
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
             entity.Property(e => e.Status).HasDefaultValue("В ожидании");
-
             entity.HasOne(d => d.User).WithMany(p => p.Applications)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__Applicati__UserI__49C3F6B7");
@@ -50,29 +48,18 @@ public partial class ConsultingDBContext : DbContext
         modelBuilder.Entity<ApplicationService>(entity =>
         {
             entity.HasKey(e => new { e.ApplicationId, e.ServiceId }).HasName("PK__Applicat__756BF79964E07B91");
-
             entity.Property(e => e.Quantity).HasDefaultValue(1);
-
-            entity.HasOne(d => d.Application).WithMany(p => p.ApplicationServices).HasConstraintName("FK__Applicati__Appli__47DBAE45");
-
+            entity.HasOne(d => d.Application).WithMany(p => p.ApplicationServices)
+                .HasConstraintName("FK__Applicati__Appli__47DBAE45");
             entity.HasOne(d => d.Service).WithMany(p => p.ApplicationServices)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK__Applicati__Servi__48CFD27E");
         });
 
-        modelBuilder.Entity<Article>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__Articles__3214EC072250598B");
-
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
-        });
-
         modelBuilder.Entity<Review>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__Reviews__3214EC072B2E3C64");
-
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
-
             entity.HasOne(d => d.User).WithMany(p => p.Reviews)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__Reviews__UserId__4AB81AF0");
@@ -86,6 +73,70 @@ public partial class ConsultingDBContext : DbContext
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__Users__3214EC0722723246");
+        });
+
+        // Конфигурация для ServiceBlock
+        modelBuilder.Entity<ServiceBlock>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title)
+                  .IsRequired()
+                  .HasMaxLength(200);
+            entity.Property(e => e.ImageUrl)
+                  .HasMaxLength(500);
+
+            entity.HasMany(e => e.BlockServices)
+                  .WithOne(bs => bs.ServiceBlock)
+                  .HasForeignKey(bs => bs.BlockId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Конфигурация для BlockService
+        modelBuilder.Entity<BlockService>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Title)
+                  .IsRequired()
+                  .HasMaxLength(200);
+
+            // Описание услуги
+            entity.Property(e => e.Description)
+                  .HasColumnType("nvarchar(max)")
+                  .HasDefaultValue("");
+
+            // Три секции
+            entity.Property(e => e.Section1)
+                  .HasColumnType("nvarchar(max)")
+                  .HasDefaultValue("");
+            entity.Property(e => e.Section2)
+                  .HasColumnType("nvarchar(max)")
+                  .HasDefaultValue("");
+            entity.Property(e => e.Section3)
+                  .HasColumnType("nvarchar(max)")
+                  .HasDefaultValue("");
+
+            // Результаты услуги
+            entity.Property(e => e.Results)
+                  .HasColumnType("nvarchar(max)")
+                  .HasDefaultValue("");
+
+            entity.HasOne(e => e.ServiceBlock)
+                  .WithMany(b => b.BlockServices)
+                  .HasForeignKey(e => e.BlockId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<GuestApplication>(entity =>
+        {
+            entity.Property(e => e.Status)
+                .HasDefaultValue("В ожидании");
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(getdate())");
+
+            entity.Property(e => e.IsDeleted)
+                .HasDefaultValue(false);
         });
 
         OnModelCreatingPartial(modelBuilder);

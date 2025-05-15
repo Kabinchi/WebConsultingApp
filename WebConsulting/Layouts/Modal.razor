@@ -1,0 +1,46 @@
+﻿@inherits LayoutComponentBase
+
+@if (IsVisible)
+{
+    <div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full relative animate-fade-in">
+            <button @onclick="Close" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-xl font-bold">&times;</button>
+
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">@Title</h2>
+
+            <div class="text-gray-700 space-y-4">
+                @ChildContent
+            </div>
+
+            <div class="mt-6 flex justify-end space-x-4">
+                @if (!string.IsNullOrEmpty(CancelButtonText))
+                {
+                    <button class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded"
+                            @onclick="Close">
+                        @CancelButtonText
+                    </button>
+                }
+                @if (!string.IsNullOrEmpty(ConfirmButtonText))
+                {
+                    <button class="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-4 rounded"
+                            @onclick="Confirm">
+                        @ConfirmButtonText
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public string Title { get; set; } = "Модальное окно";
+    [Parameter] public string CancelButtonText { get; set; } = "Отмена";
+    [Parameter] public string ConfirmButtonText { get; set; } = "Подтвердить";
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public EventCallback OnConfirm { get; set; }
+    [Parameter] public RenderFragment ChildContent { get; set; }
+
+    private async Task Close() => await OnCancel.InvokeAsync(null);
+    private async Task Confirm() => await OnConfirm.InvokeAsync(null);
+}

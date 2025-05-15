@@ -1,87 +1,447 @@
 ﻿@page "/Services"
-@inject IJSRuntime JSRuntime
+@inject WebConsulting.Services.IServiceBlockService BlockService
+@inject IJSRuntime JS
+@using WebConsulting.Models
+@using System.Linq
+@using Microsoft.AspNetCore.Components.Forms
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Услуги - Reputation</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 text-gray-800">
+<PageTitle>Услуги - Reputation</PageTitle>
 
-    <main class="py-16">
-        <div class="container mx-auto">
-            <h1 class="text-3xl font-bold text-gray-800 mb-8">Предоставляемые услуги</h1>
-            <p class="mb-12 text-gray-600">Услуги консалтинговой компании Reputation</p>
+<div class="container mx-auto py-8">
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-bold">Услуги</h1>
+        @if (IsAdmin)
+        {
+            <button class="bg-orange-500 text-white px-6 py-2 rounded hover:bg-orange-600"
+                    @onclick="OpenAddBlock">
+                + Добавить блок
+            </button>
+        }
+    </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div class="bg-white shadow-lg rounded-lg overflow-hidden">
-                    <img src="/images/1.jpg" alt="Консалтинг" class="w-full h-48 object-cover">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @if (blocks?.Any() == true)
+        {
+            @foreach (var block in blocks)
+            {
+                <div class="bg-white shadow-lg rounded-lg overflow-hidden relative">
+                    <img src="@block.ImageUrl" class="w-full h-48 object-cover" alt="@block.Title" />
                     <div class="p-4">
-                        <h3 class="text-xl font-bold text-gray-800">Консалтинг</h3>
-                        <p class="mt-2 text-gray-600">Набор консалтинговых услуг для бизнеса:</p>
-                        <ul class="mt-4 text-orange-500 space-y-2">
-                            <li><a href="/Services/Management">Управление проектами</a></li>
-                            <li><a href="/Services/Management">Организация менеджмента</a></li>
-                            <li><a href="/Services/Management">Оптимизация процессов</a></li>
-                            <li><a href="/Services/Management">Консалтинг по процессному управлению</a></li>
-                        </ul>
+                        <h3 class="text-xl font-bold">@block.Title</h3>
+                        <div class="mt-4 space-y-2">
+                            @foreach (var svc in block.BlockServices ?? Array.Empty<BlockService>())
+                            {
+                                <div class="flex items-center justify-between">
+                                    <button class="flex-grow text-left p-2 bg-orange-100 hover:bg-orange-200 rounded"
+                                            @onclick="() => OpenDetails(svc)">
+                                        @svc.Title
+                                    </button>
+                                    @if (IsAdmin)
+                                    {
+                                        <button class="ml-2 text-red-500 hover:text-red-700"
+                                                @onclick="() => ConfirmAndDeleteService(svc.Id)">
+                                            ×
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                        @if (IsAdmin)
+                        {
+                            <button class="mt-4 text-orange-500 hover:text-orange-600"
+                                    @onclick="() => OpenAddService(block)">
+                                + Добавить услугу
+                            </button>
+                        }
                     </div>
+                    @if (IsAdmin)
+                    {
+                        <button class="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                                @onclick="() => ConfirmAndDeleteBlock(block.Id)">
+                            ×
+                        </button>
+                    }
                 </div>
+            }
+        }
+        else
+        {
+            <p class="col-span-3 text-center text-gray-500">Блоки ещё не созданы.</p>
+        }
+    </div>
+</div>
 
-                <div class="bg-white shadow-lg rounded-lg overflow-hidden">
-                    <img src="/images/2.jpg" alt="Организационное построение" class="w-full h-48 object-cover">
-                    <div class="p-4">
-                        <h3 class="text-xl font-bold text-gray-800">Организационное построение</h3>
-                        <p class="mt-2 text-gray-600">Построение и модернизация организационного управления:</p>
-                        <ul class="mt-4 text-orange-500 space-y-2">
-                            <li><a href="/Services/Management">Оптимизация структуры</a></li>
-                            <li><a href="/Services/Management">Системы мотивации</a></li>
-                            <li><a href="/Services/Management">Регламенты и инструкции</a></li>
-                        </ul>
-                    </div>
-                </div>
+@if (isAddBlockOpen)
+{
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4">Новый блок</h3>
 
-                <div class="bg-white shadow-lg rounded-lg overflow-hidden">
-                    <img src="/images/3.jpg" alt="Повышение эффективности" class="w-full h-48 object-cover">
-                    <div class="p-4">
-                        <h3 class="text-xl font-bold text-gray-800">Повышение эффективности</h3>
-                        <p class="mt-2 text-gray-600">Услуги и инструменты для увеличения производительности:</p>
-                        <ul class="mt-4 text-orange-500 space-y-2">
-                            <li><a href="/Services/Management">Система показателей KPI</a></li>
-                            <li><a href="/Services/Management">Оптимизация процессов</a></li>
-                            <li><a href="/Services/Management">Реинжиниринг бизнес-процессов</a></li>
-                        </ul>
-                    </div>
-                </div>
+            <label class="block mb-2">Название блока</label>
+            <input @bind="newBlockTitle" class="w-full mb-4 p-2 border rounded" />
 
-                <div class="bg-white shadow-lg rounded-lg overflow-hidden">
-                    <img src="/images/4.jpg" alt="Бизнес-анализ" class="w-full h-48 object-cover">
-                    <div class="p-4">
-                        <h3 class="text-xl font-bold text-gray-800">Бизнес-анализ</h3>
-                        <p class="mt-2 text-gray-600">Анализ и оценка эффективности работы компаний:</p>
-                        <ul class="mt-4 text-orange-500 space-y-2">
-                            <li><a href="/Services/Management">Анализ данных</a></li>
-                            <li><a href="/Services/Management">Исследование конкурентов</a></li>
-                        </ul>
-                    </div>
-                </div><div class="bg-white shadow-lg rounded-lg overflow-hidden">
-                    <img src="/images/5.jpg" alt="Система менеджмента качества ISO 9001" class="w-full h-48 object-cover">
-                    <div class="p-4">
-                        <h3 class="text-xl font-bold text-gray-800">Система менеджмента качества ISO 9001</h3>
-                        <p class="mt-2 text-gray-600">Консалтинг и сопровождение внедрения:</p>
-                        <ul class="mt-4 text-orange-500 space-y-2">
-                            <li><a href="/Services/Management">Аудит СМК</a></li>
-                            <li><a href="/Services/Management">Внедрение СМК</a></li>
-                            <li><a href="/Services/Management">Разработка документации</a></li>
-                        </ul>
-                    </div>
-                </div>
+            <label class="block mb-2">Изображение</label>
+            <InputFile OnChange="OnBlockImageSelected" />
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="text-red-500">@errorMessage</div>
+            }
+            @if (!string.IsNullOrEmpty(blockImagePreview))
+            {
+                <img src="@blockImagePreview" style="max-width: 300px;" />
+            }
+
+            <div class="flex justify-end space-x-4 mt-6">
+                <button class="text-gray-600 hover:text-gray-800" @onclick="() => isAddBlockOpen = false">Отмена</button>
+                <button class="bg-orange-500 text-white px-4 py-2 rounded" @onclick="SaveBlock">Сохранить</button>
             </div>
         </div>
-    </main>
+    </div>
+}
 
-</body>
-</html>
+@if (isAddServiceOpen)
+{
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4">Новая услуга</h3>
+            <label class="block mb-2">Заголовок услуги</label>
+            <input @bind="newServiceTitle" class="w-full mb-4 p-2 border rounded" />
+
+            <div class="flex justify-end space-x-4 mt-6">
+                <button class="text-gray-600 hover:text-gray-800" @onclick="() => isAddServiceOpen = false">Отмена</button>
+                <button class="bg-orange-500 text-white px-4 py-2 rounded" @onclick="SaveService">Сохранить</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (isDetailOpen && editingService != null)
+{
+    <div class="fixed inset-0 bg-black bg-opacity-50 overflow-auto py-10 z-50">
+        <div class="container mx-auto bg-white rounded-lg shadow-lg p-6 max-w-5xl">
+
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">@editingService.Title</h2>
+                <button class="text-gray-500 hover:text-gray-700" @onclick="CloseDetails">✕</button>
+            </div>
+
+            <!-- Описание -->
+            <section class="flex justify-start mb-8">
+                <div class="w-1/2 bg-white p-4 shadow-lg rounded-lg relative">
+                    @if (isEditingDescription)
+                    {
+                        <textarea @bind="tempEditText" class="w-full h-24 p-2 border rounded"></textarea>
+                        <div class="mt-4 flex justify-end space-x-4">
+                            <button class="text-gray-600 hover:text-gray-800" @onclick="CancelEdit">Отмена</button>
+                            <button class="bg-orange-500 text-white px-4 py-2 rounded" @onclick="SaveDescription">Сохранить</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-gray-700">@editingService.Description</p>
+                        <button class="absolute top-2 right-2 text-blue-500 hover:text-blue-700 text-sm" @onclick="EditDescription">Редактировать</button>
+                    }
+                </div>
+            </section>
+
+            <!-- Секции: заменили <p> на список -->
+            <section class="flex justify-center mb-8">
+                <div class="bg-white p-8 shadow-lg rounded-lg w-full">
+                    <h3 class="text-xl font-bold text-center text-gray-800 mb-4">Секции</h3>
+                    <div class="grid grid-cols-3 gap-4 text-center mb-6">
+                        @foreach (var sec in new[] { "Section1", "Section2", "Section3" })
+                        {
+                            <button class="py-2 px-4 rounded @(currentSection == sec
+                             ? "bg-orange-500 text-white" : "bg-gray-100") hover:bg-orange-600"
+                                    @onclick="() => SelectSection(sec)">
+                                @sec
+                            </button>
+                        }
+                    </div>
+                    <div class="relative p-4 bg-gray-100 rounded text-gray-700">
+                        @if (isEditingSection)
+                        {
+                            <textarea @bind="tempEditText" class="w-full h-32 p-2 border rounded"></textarea>
+                            <div class="mt-4 flex justify-end space-x-4">
+                                <button class="text-gray-600 hover:text-gray-800" @onclick="CancelEdit">Отмена</button>
+                                <button class="bg-orange-500 text-white px-4 py-2 rounded" @onclick="SaveSection">Сохранить</button>
+                            </div>
+                        }
+                        else
+                        {
+                            <ul class="list-disc pl-5 space-y-1">
+                                @foreach (var line in CurrentSectionContent()
+                               .Split('\n')
+                               .Where(l => !string.IsNullOrWhiteSpace(l)))
+                                {
+                                    <li>@line</li>
+                                }
+                            </ul>
+                            <button class="absolute top-2 right-2 text-blue-500 hover:text-blue-700 text-sm" @onclick="EditSection">
+                                Редактировать
+                            </button>
+                        }
+                    </div>
+                </div>
+            </section>
+
+            <!-- Результаты -->
+            <section class="flex justify-start mb-8">
+                <div class="w-full bg-white p-8 shadow-lg rounded-lg relative">
+                    <h3 class="text-xl font-bold mb-4">Результаты</h3>
+                    @if (isEditingResults)
+                    {
+                        <textarea @bind="tempEditText" class="w-full h-24 p-2 border rounded"></textarea>
+                        <div class="mt-4 flex justify-end space-x-4">
+                            <button class="text-gray-600 hover:text-gray-800" @onclick="CancelEdit">Отмена</button>
+                            <button class="bg-orange-500 text-white px-4 py-2 rounded" @onclick="SaveResults">Сохранить</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <ul class="list-disc pl-5 space-y-1">
+                            @foreach (var line in editingService.Results.Split('\n').Where(l => !string.IsNullOrWhiteSpace(l)))
+                            {
+                                <li>@line</li>
+                            }
+                        </ul>
+                        <button class="absolute top-2 right-2 text-blue-500 hover:text-blue-700 text-sm" @onclick="EditResults">
+                            Редактировать
+                        </button>
+                    }
+                </div>
+            </section>
+
+            <div class="mt-6 flex justify-end">
+                <button class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600" @onclick="CloseDetails">Закрыть</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+
+    private bool IsAdmin { get; set; }
+    private bool isUserAuthenticated = false;
+    private bool isInitialized = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var userRole = await JS.InvokeAsync<string>("sessionStorage.getItem", "userRole");
+                if (!string.IsNullOrEmpty(userRole))
+                {
+                    isUserAuthenticated = true;
+                    IsAdmin = userRole == "Admin";
+                    StateHasChanged();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при получении роли пользователя: {ex.Message}");
+            }
+        }
+    }
+
+    List<ServiceBlock> blocks = new();
+    bool isAddBlockOpen, isAddServiceOpen, isDetailOpen;
+
+    ServiceBlock editingBlock;
+    BlockService editingService;
+
+    string newBlockTitle, newServiceTitle;
+    string currentSection = "Section1";
+    bool isEditingDescription, isEditingSection, isEditingResults;
+    string tempEditText;
+
+    IBrowserFile blockImageFile;
+    string blockImagePreview;
+    string errorMessage;
+
+    const long MaxImageSize = 5 * 1024 * 1024;
+
+
+    protected override async Task OnInitializedAsync()
+      => blocks = (await BlockService.GetAllBlocksAsync()).ToList();
+
+    Task OpenAddBlock()
+    {
+        newBlockTitle = "";
+        blockImagePreview = null;
+        blockImageFile = null;
+        isAddBlockOpen = true;
+        return Task.CompletedTask;
+    }
+
+    async Task OnBlockImageSelected(InputFileChangeEventArgs e)
+    {
+        errorMessage = string.Empty;
+        blockImagePreview = string.Empty;
+
+        blockImageFile = e.File;
+
+        if (blockImageFile.Size > MaxImageSize)
+        {
+            errorMessage = $"Файл слишком большой. Максимальный размер — {MaxImageSize / 1024 / 1024} МБ.";
+            return;
+        }
+
+        try
+        {
+            using var stream = blockImageFile.OpenReadStream(maxAllowedSize: MaxImageSize);
+            var buffer = new byte[blockImageFile.Size];
+            await stream.ReadAsync(buffer);
+            blockImagePreview = $"data:{blockImageFile.ContentType};base64,{Convert.ToBase64String(buffer)}";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Ошибка при загрузке изображения: " + ex.Message;
+        }
+    }
+
+    async Task ConfirmAndDeleteService(int id)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", $"Вы уверены, что хотите удалить услугу #{id}?"))
+        {
+            await BlockService.DeleteBlockServiceAsync(id);
+            blocks = (await BlockService.GetAllBlocksAsync()).ToList();
+        }
+    }
+
+    async Task ConfirmAndDeleteBlock(int id)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", $"Вы уверены, что хотите удалить блок #{id}?"))
+        {
+            await BlockService.DeleteBlockAsync(id);
+            blocks = (await BlockService.GetAllBlocksAsync()).ToList();
+        }
+    }
+
+    async Task SaveBlock()
+    {
+        string filename = null;
+        if (blockImageFile != null)
+        {
+            var path = Path.Combine("wwwroot", "uploads", blockImageFile.Name);
+            using var fs = File.Create(path);
+            await blockImageFile.OpenReadStream().CopyToAsync(fs);
+            filename = $"/uploads/{blockImageFile.Name}";
+        }
+
+        var block = new ServiceBlock
+            {
+                Title = newBlockTitle,
+                ImageUrl = filename ?? "/images/default.jpg"
+            };
+
+        await BlockService.CreateBlockAsync(block);
+        blocks = (await BlockService.GetAllBlocksAsync()).ToList();
+        isAddBlockOpen = false;
+    }
+
+    async Task DeleteBlock(int id)
+    {
+        await BlockService.DeleteBlockAsync(id);
+        blocks = (await BlockService.GetAllBlocksAsync()).ToList();
+    }
+
+    Task OpenAddService(ServiceBlock block)
+    {
+        editingBlock = block;
+        newServiceTitle = "";
+        isAddServiceOpen = true;
+        return Task.CompletedTask;
+    }
+
+    async Task SaveService()
+    {
+        await BlockService.CreateBlockServiceAsync(new BlockService
+            {
+                BlockId = editingBlock.Id,
+                Title = newServiceTitle,
+                Description = "",
+                Section1 = "",
+                Section2 = "",
+                Section3 = "",
+                Results = ""
+            });
+        blocks = (await BlockService.GetAllBlocksAsync()).ToList();
+        isAddServiceOpen = false;
+    }
+
+    async Task DeleteService(int serviceId)
+    {
+        await BlockService.DeleteBlockServiceAsync(serviceId);
+        blocks = (await BlockService.GetAllBlocksAsync()).ToList();
+    }
+
+    void OpenDetails(BlockService svc)
+    {
+        editingService = svc;
+        currentSection = "Section1";
+        isDetailOpen = true;
+        isEditingDescription = isEditingSection = isEditingResults = false;
+    }
+
+    void CloseDetails() => isDetailOpen = false;
+
+    // Описание
+    void EditDescription() => isEditingDescription = true;
+
+    async Task SaveDescription()
+    {
+        editingService.Description = tempEditText;
+        await BlockService.UpdateBlockServiceAsync(editingService);
+        isEditingDescription = false;
+    }
+
+    // Секции
+    void SelectSection(string sec) => currentSection = sec;
+
+    void EditSection()
+    {
+        isEditingSection = true;
+        tempEditText = currentSection switch
+        {
+            "Section1" => editingService.Section1,
+            "Section2" => editingService.Section2,
+            _ => editingService.Section3
+        };
+    }
+
+    async Task SaveSection()
+    {
+        switch (currentSection)
+        {
+            case "Section1": editingService.Section1 = tempEditText; break;
+            case "Section2": editingService.Section2 = tempEditText; break;
+            default: editingService.Section3 = tempEditText; break;
+        }
+        await BlockService.UpdateBlockServiceAsync(editingService);
+        isEditingSection = false;
+    }
+
+    // Результаты
+    void EditResults() => isEditingResults = true;
+
+    async Task SaveResults()
+    {
+        editingService.Results = tempEditText;
+        await BlockService.UpdateBlockServiceAsync(editingService);
+        isEditingResults = false;
+    }
+
+    void CancelEdit()
+      => isEditingDescription = isEditingSection = isEditingResults = false;
+
+    string CurrentSectionContent() => currentSection switch
+    {
+        "Section1" => editingService.Section1,
+        "Section2" => editingService.Section2,
+        _ => editingService.Section3
+    };
+}
