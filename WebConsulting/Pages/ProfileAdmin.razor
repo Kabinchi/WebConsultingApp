@@ -231,6 +231,7 @@
     <main class="container mx-auto py-8 px-4 lg:px-16 min-h-[calc(95%-64px)]">
         <div class="flex flex-col md:flex-row mt-8">
             <div class="w-full md:w-1/4 p-4 bg-gray-200 mb-4 md:mb-0">
+                <!-- Добавляем новые кнопки для гостевых заявок -->
                 <button class="w-full py-2 mb-4 rounded @GetTabClass(activeTab == 0)"
                         @onclick="() => ShowTab(0)">
                     Просмотр заявок
@@ -238,6 +239,14 @@
                 <button class="w-full py-2 mb-4 rounded @GetTabClass(activeTab == 1)"
                         @onclick="() => ShowTab(1)">
                     Архив заявок
+                </button>
+                <button class="w-full py-2 mb-4 rounded @GetTabClass(activeTab == 4)"
+                        @onclick="() => ShowTab(4)">
+                    Гостевые заявки
+                </button>
+                <button class="w-full py-2 mb-4 rounded @GetTabClass(activeTab == 5)"
+                        @onclick="() => ShowTab(5)">
+                    Архив гостевых
                 </button>
                 <button class="w-full py-2 mb-4 rounded @GetTabClass(activeTab == 2)"
                         @onclick="() => ShowTab(2)">
@@ -446,6 +455,165 @@
                                                 <td class="px-2 py-2 text-sm">@app.DeleteReason</td>
                                                 <td class="px-2 py-2 text-sm">
                                                     <button @onclick="() => RestoreApplication(app)" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 text-sm">
+                                                        Восстановить
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                }
+                else if (activeTab == 4) // Новая вкладка гостевых заявок
+                {
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">Гостевые заявки</h2>
+
+                        <div class="mb-4 flex flex-col md:flex-row gap-4">
+                            <div class="flex-grow">
+                                <input type="text" class="w-full p-2 border border-gray-300 rounded"
+                                       placeholder="Поиск..." @bind="guestSearchText" @bind:event="oninput" />
+                            </div>
+                            <div>
+                                <select class="p-2 border border-gray-300 rounded" @bind="guestSearchColumn">
+                                    <option value="">Все столбцы</option>
+                                    <option value="FullName">Имя</option>
+                                    <option value="Phone">Телефон</option>
+                                    <option value="Email">Почта</option>
+                                    <option value="Status">Статус</option>
+                                </select>
+                            </div>
+                            <div>
+                                <select class="p-2 border border-gray-300 rounded" @bind="guestStatusFilter">
+                                    <option value="">Все статусы</option>
+                                    <option value="В ожидании">В ожидании</option>
+                                    <option value="Обработано">Обработано</option>
+                                </select>
+                            </div>
+                            <button @onclick="ApplyGuestFilters" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                                Применить
+                            </button>
+                            <button @onclick="ResetGuestFilters" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                                Сбросить
+                            </button>
+                        </div>
+
+                        @if (guestApplications == null || guestApplications.Count == 0)
+                        {
+                            <p class="text-gray-600">Нет активных гостевых заявок.</p>
+                        }
+                        else
+                        {
+                            <div class="table-container">
+                                <table class="table-auto bg-white">
+                                    <thead class="bg-gray-200">
+                                        <tr>
+                                            <th class="px-2 py-2 text-sm">Имя</th>
+                                            <th class="px-2 py-2 text-sm">Телефон</th>
+                                            <th class="px-2 py-2 text-sm">Почта</th>
+                                            <th class="px-2 py-2 text-sm">Вопрос</th>
+                                            <th class="px-2 py-2 text-sm">Дата</th>
+                                            <th class="px-2 py-2 text-sm">Статус</th>
+                                            <th class="px-2 py-2 text-sm">Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var app in filteredGuestApplications.Where(a => !a.IsDeleted))
+                                        {
+                                            <tr class="border-t">
+                                                <td class="px-2 py-2 text-sm">@app.FullName</td>
+                                                <td class="px-2 py-2 text-sm">@FormatPhoneNumber(app.Phone)</td>
+                                                <td class="px-2 py-2 text-sm">@app.Email</td>
+                                                <td class="px-2 py-2 text-sm">@TruncateText(app.Question, 50)</td>
+                                                <td class="px-2 py-2 text-sm">@app.CreatedAt.ToString("dd.MM.yyyy")</td>
+                                                <td class="px-2 py-2 text-sm @GetStatusClass(app.Status)">@app.Status</td>
+                                                <td class="px-2 py-2 text-sm">
+                                                    <div class="action-buttons">
+                                                        <select @bind="app.Status" class="border px-2 py-1 rounded text-sm">
+                                                            <option value="В ожидании">В ожидании</option>
+                                                            <option value="Обработано">Обработано</option>
+                                                        </select>
+                                                        <button @onclick="() => SaveGuestStatus(app)" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm">
+                                                            Сохранить
+                                                        </button>
+                                                        <button @onclick="() => ShowGuestCancelDialog(app)"
+                                                                class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm">
+                                                            Удалить
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                }
+                else if (activeTab == 5) // Архив гостевых заявок
+                {
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">Архив гостевых заявок</h2>
+
+                        <div class="mb-4 flex flex-col md:flex-row gap-4">
+                            <div class="flex-grow">
+                                <input type="text" class="w-full p-2 border border-gray-300 rounded"
+                                       placeholder="Поиск..." @bind="guestArchiveSearchText" @bind:event="oninput" />
+                            </div>
+                            <div>
+                                <select class="p-2 border border-gray-300 rounded" @bind="guestArchiveSearchColumn">
+                                    <option value="">Все столбцы</option>
+                                    <option value="FullName">Имя</option>
+                                    <option value="Phone">Телефон</option>
+                                    <option value="Email">Почта</option>
+                                    <option value="DeletedBy">Кто удалил</option>
+                                </select>
+                            </div>
+                            <button @onclick="ApplyGuestArchiveFilters" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                                Поиск
+                            </button>
+                            <button @onclick="ResetGuestArchiveFilters" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                                Сбросить
+                            </button>
+                        </div>
+
+                        @if (archivedGuestApplications == null || archivedGuestApplications.Count == 0)
+                        {
+                            <p class="text-gray-600">Нет заявок в архиве.</p>
+                        }
+                        else
+                        {
+                            <div class="table-container">
+                                <table class="table-auto bg-white">
+                                    <thead class="bg-gray-200">
+                                        <tr>
+                                            <th class="px-2 py-2 text-sm">Имя</th>
+                                            <th class="px-2 py-2 text-sm">Телефон</th>
+                                            <th class="px-2 py-2 text-sm">Почта</th>
+                                            <th class="px-2 py-2 text-sm">Вопрос</th>
+                                            <th class="px-2 py-2 text-sm">Дата создания</th>
+                                            <th class="px-2 py-2 text-sm">Дата удаления</th>
+                                            <th class="px-2 py-2 text-sm">Кто удалил</th>
+                                            <th class="px-2 py-2 text-sm">Причина</th>
+                                            <th class="px-2 py-2 text-sm">Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var app in filteredArchivedGuestApplications)
+                                        {
+                                            <tr class="border-t">
+                                                <td class="px-2 py-2 text-sm">@app.FullName</td>
+                                                <td class="px-2 py-2 text-sm">@FormatPhoneNumber(app.Phone)</td>
+                                                <td class="px-2 py-2 text-sm">@app.Email</td>
+                                                <td class="px-2 py-2 text-sm">@TruncateText(app.Question, 30)</td>
+                                                <td class="px-2 py-2 text-sm">@app.CreatedAt.ToString("dd.MM.yyyy")</td>
+                                                <td class="px-2 py-2 text-sm">@app.DeletedAt?.ToString("dd.MM.yyyy")</td>
+                                                <td class="px-2 py-2 text-sm">@app.DeletedBy</td>
+                                                <td class="px-2 py-2 text-sm">@app.DeleteReason</td>
+                                                <td class="px-2 py-2 text-sm">
+                                                    <button @onclick="() => RestoreGuestApplication(app)" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 text-sm">
                                                         Восстановить
                                                     </button>
                                                 </td>
@@ -781,6 +949,8 @@
             await LoadApplications();
             await LoadArchivedApplications();
             await LoadStatistics();
+            await LoadGuestApplications();
+            await LoadArchivedGuestApplications();
         }
         catch (Exception ex)
         {
@@ -1148,31 +1318,39 @@
 
     private async Task ConfirmCancel()
     {
-        if (applicationToCancel != null && !string.IsNullOrWhiteSpace(cancelReason))
+        if (activeTab == 4 || activeTab == 5) // Для гостевых заявок
         {
-            applicationToCancel.IsDeleted = true;
-            applicationToCancel.DeletedAt = DateTime.Now;
-            applicationToCancel.DeleteReason = cancelReason;
-            applicationToCancel.DeletedBy = $"{user.FullName} ({user.Role})";
-            applicationToCancel.Status = "Отказано";
-
-            try
-            {
-                DbContext.Applications.Update(applicationToCancel);
-                await DbContext.SaveChangesAsync();
-                await LoadApplications();
-                await LoadArchivedApplications();
-                CloseCancelDialog();
-                await JSRuntime.InvokeVoidAsync("alert", "Заявка успешно отменена");
-            }
-            catch (Exception ex)
-            {
-                await JSRuntime.InvokeVoidAsync("alert", $"Ошибка: {ex.Message}");
-            }
+            await ConfirmGuestCancel();
         }
-        else
+        else // Для обычных заявок
         {
-            await JSRuntime.InvokeVoidAsync("alert", "Пожалуйста, укажите причину отмены");
+            // Существующий код для обычных заявок
+            if (applicationToCancel != null && !string.IsNullOrWhiteSpace(cancelReason))
+            {
+                applicationToCancel.IsDeleted = true;
+                applicationToCancel.DeletedAt = DateTime.Now;
+                applicationToCancel.DeleteReason = cancelReason;
+                applicationToCancel.DeletedBy = $"{user.FullName} ({user.Role})";
+                applicationToCancel.Status = "Отказано";
+
+                try
+                {
+                    DbContext.Applications.Update(applicationToCancel);
+                    await DbContext.SaveChangesAsync();
+                    await LoadApplications();
+                    await LoadArchivedApplications();
+                    CloseCancelDialog();
+                    await JSRuntime.InvokeVoidAsync("alert", "Заявка успешно отменена");
+                }
+                catch (Exception ex)
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", $"Ошибка: {ex.Message}");
+                }
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Пожалуйста, укажите причину отмены");
+            }
         }
     }
 
@@ -1434,4 +1612,231 @@
 
         return hasUpperCase && hasDigit && hasSpecialChar && isEnglishOnly;
     }
+
+    private List<GuestApplication> guestApplications = new();
+    private List<GuestApplication> filteredGuestApplications = new();
+    private List<GuestApplication> archivedGuestApplications = new();
+    private List<GuestApplication> filteredArchivedGuestApplications = new();
+
+    private string guestSearchText = "";
+    private string guestSearchColumn = "";
+    private string guestStatusFilter = "";
+    private string guestArchiveSearchText = "";
+    private string guestArchiveSearchColumn = "";
+
+    private async Task LoadGuestApplications()
+    {
+        try
+        {
+            guestApplications = await DbContext.GuestApplications
+                .Where(a => !a.IsDeleted)
+                .AsNoTracking()
+                .Select(a => new GuestApplication // Проекция с обработкой NULL
+                    {
+                        Id = a.Id,
+                        FullName = a.FullName ?? "",
+                        Phone = a.Phone ?? "",
+                        Email = a.Email ?? "",
+                        Question = a.Question ?? "",
+                        CreatedAt = a.CreatedAt,
+                        Status = a.Status ?? "В ожидании",
+                        IsDeleted = a.IsDeleted,
+                        DeletedAt = a.DeletedAt,
+                        DeleteReason = a.DeleteReason,
+                        DeletedBy = a.DeletedBy
+                    })
+                .ToListAsync();
+
+            filteredGuestApplications = guestApplications;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка загрузки: {ex.Message}");
+            guestApplications = new List<GuestApplication>();
+            filteredGuestApplications = new List<GuestApplication>();
+        }
+    }
+
+    private async Task LoadArchivedGuestApplications()
+    {
+        archivedGuestApplications = await DbContext.GuestApplications
+            .Where(a => a.IsDeleted)
+            .ToListAsync();
+        filteredArchivedGuestApplications = archivedGuestApplications;
+    }
+
+    private void ApplyGuestFilters()
+    {
+        try
+        {
+            var query = guestApplications.AsQueryable();
+            var search = guestSearchText?.Trim() ?? "";
+
+            if (!string.IsNullOrEmpty(guestStatusFilter))
+            {
+                query = query.Where(a => a.Status == guestStatusFilter);
+            }
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = guestSearchColumn switch
+                {
+                    "FullName" => query.Where(a =>
+                        (a.FullName ?? "").Contains(search, StringComparison.OrdinalIgnoreCase)),
+                    "Phone" => query.Where(a =>
+                        (a.Phone ?? "").Contains(search, StringComparison.OrdinalIgnoreCase)),
+                    "Email" => query.Where(a =>
+                        (a.Email ?? "").Contains(search, StringComparison.OrdinalIgnoreCase)),
+                    "Status" => query.Where(a =>
+                        (a.Status ?? "").Contains(search, StringComparison.OrdinalIgnoreCase)),
+                    _ => query.Where(a =>
+                        (a.FullName ?? "").Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                        (a.Phone ?? "").Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                        (a.Email ?? "").Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                        (a.Question ?? "").Contains(search, StringComparison.OrdinalIgnoreCase))
+                };
+            }
+
+            filteredGuestApplications = query.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка фильтрации: {ex.Message}");
+            filteredGuestApplications = guestApplications;
+        }
+    }
+
+    private void ApplyGuestArchiveFilters()
+    {
+        try
+        {
+            var query = archivedGuestApplications.AsQueryable();
+
+            if (!string.IsNullOrEmpty(guestArchiveSearchText))
+            {
+                if (string.IsNullOrEmpty(guestArchiveSearchColumn))
+                {
+                    query = query.Where(a =>
+                        a.FullName.Contains(guestArchiveSearchText) ||
+                        a.Phone.Contains(guestArchiveSearchText) ||
+                        a.Email.Contains(guestArchiveSearchText) ||
+                        a.DeletedBy.Contains(guestArchiveSearchText));
+                }
+                else
+                {
+                    query = guestArchiveSearchColumn switch
+                    {
+                        "FullName" => query.Where(a => a.FullName.Contains(guestArchiveSearchText)),
+                        "Phone" => query.Where(a => a.Phone.Contains(guestArchiveSearchText)),
+                        "Email" => query.Where(a => a.Email.Contains(guestArchiveSearchText)),
+                        "DeletedBy" => query.Where(a => a.DeletedBy.Contains(guestArchiveSearchText)),
+                        _ => query
+                    };
+                }
+            }
+
+            filteredArchivedGuestApplications = query.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка фильтрации архива: {ex.Message}");
+            filteredArchivedGuestApplications = archivedGuestApplications;
+        }
+    }
+
+    private async Task SaveGuestStatus(GuestApplication app)
+    {
+        try
+        {
+            DbContext.GuestApplications.Update(app);
+            await DbContext.SaveChangesAsync();
+            await JSRuntime.InvokeVoidAsync("alert", "Статус обновлен!");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Ошибка: {ex.Message}");
+        }
+    }
+
+    private async Task RestoreGuestApplication(GuestApplication app)
+    {
+        app.IsDeleted = false;
+        app.DeletedAt = null;
+        app.DeleteReason = null;
+        app.DeletedBy = null;
+
+        try
+        {
+            DbContext.GuestApplications.Update(app);
+            await DbContext.SaveChangesAsync();
+            await LoadGuestApplications();
+            await LoadArchivedGuestApplications();
+            await JSRuntime.InvokeVoidAsync("alert", "Заявка восстановлена!");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Ошибка: {ex.Message}");
+        }
+    }
+
+    private string TruncateText(string text, int maxLength)
+    {
+        return string.IsNullOrEmpty(text) ? ""
+            : text.Length <= maxLength ? text
+            : text.Substring(0, maxLength) + "...";
+    }
+
+    private GuestApplication guestApplicationToCancel;
+
+    private void ResetGuestFilters()
+    {
+        guestSearchText = "";
+        guestSearchColumn = "";
+        guestStatusFilter = "";
+        ApplyGuestFilters();
+    }
+
+    private void ResetGuestArchiveFilters()
+    {
+        guestArchiveSearchText = "";
+        guestArchiveSearchColumn = "";
+        ApplyGuestArchiveFilters();
+    }
+
+    private void ShowGuestCancelDialog(GuestApplication app)
+    {
+        guestApplicationToCancel = app;
+        showCancelDialog = true;
+    }
+
+    private async Task ConfirmGuestCancel()
+    {
+        if (guestApplicationToCancel != null && !string.IsNullOrWhiteSpace(cancelReason))
+        {
+            guestApplicationToCancel.IsDeleted = true;
+            guestApplicationToCancel.DeletedAt = DateTime.Now;
+            guestApplicationToCancel.DeleteReason = cancelReason;
+            guestApplicationToCancel.DeletedBy = $"{user.FullName} ({user.Role})";
+
+            try
+            {
+                DbContext.GuestApplications.Update(guestApplicationToCancel);
+                await DbContext.SaveChangesAsync();
+                await LoadGuestApplications();
+                await LoadArchivedGuestApplications();
+                CloseCancelDialog();
+                await JSRuntime.InvokeVoidAsync("alert", "Заявка успешно удалена");
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"Ошибка: {ex.Message}");
+            }
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Пожалуйста, укажите причину удаления");
+        }
+    }
+
+
 }

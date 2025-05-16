@@ -350,7 +350,20 @@
             using var context = new ConsultingDBContext();
             var user = context.Users.FirstOrDefault(u => u.Email == Email);
 
-            if (user != null && user.Password == Password)
+            if (user == null)
+            {
+                ErrorMessage = "Неверный логин или пароль";
+                return;
+            }
+
+            // Проверка на блокировку пользователя
+            if (user.IsDeleted)
+            {
+                ErrorMessage = "Пользователь заблокирован.";
+                return;
+            }
+
+            if (user.Password == Password)
             {
                 await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", "userRole", user.Role);
                 await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", "userSession", user.Email);

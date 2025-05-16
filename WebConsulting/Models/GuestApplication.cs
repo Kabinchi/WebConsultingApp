@@ -6,38 +6,31 @@ namespace WebConsulting.Models
 {
     public class GuestApplication
     {
-        [Key]
         public int Id { get; set; }
 
         [Required]
         [StringLength(100)]
-        public string FullName { get; set; }
+        public string FullName { get; set; } = string.Empty; // Инициализация
 
         [Required]
         [StringLength(20)]
-        public string Phone { get; set; }
+        public string Phone { get; set; } = string.Empty;
 
         [Required]
         [StringLength(100)]
-        public string Email { get; set; }
+        public string Email { get; set; } = string.Empty;
 
-        public string Question { get; set; }
+        public string? Question { get; set; } // Nullable
 
-        [Column(TypeName = "datetime")]
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; }
 
+        [Required]
         [StringLength(20)]
         public string Status { get; set; } = "В ожидании";
 
-        public bool IsDeleted { get; set; } = false;
-
-        [Column(TypeName = "datetime")]
+        public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
-
-        [StringLength(200)]
-        public string DeleteReason { get; set; }
-
-        [StringLength(100)]
-        public string DeletedBy { get; set; }
+        public string? DeleteReason { get; set; } // Nullable
+        public string? DeletedBy { get; set; }    // Nullable
     }
 }

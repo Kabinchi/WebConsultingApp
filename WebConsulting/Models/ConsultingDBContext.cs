@@ -31,7 +31,7 @@ public partial class ConsultingDBContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code.
-        => optionsBuilder.UseSqlServer("Data Source=ALICE\\MSSQLSERVER01;Initial Catalog=ConsultingDB7;Integrated Security=True;Encrypt=False");
+        => optionsBuilder.UseSqlServer("Data Source=ALICE\\MSSQLSERVER01;Initial Catalog=ConsultingDB8;Integrated Security=True;Encrypt=False");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

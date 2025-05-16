@@ -17,7 +17,7 @@
 </head>
 <body class="bg-gray-100 text-gray-800">
 
-    @if (showModal)
+    @if (showModal && !IsAuthenticated)
     {
         <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
@@ -93,6 +93,8 @@
         </div>
     </section>
 
+    @if (!IsAuthenticated)
+    {
     <section class="bg-white py-16">
         <div class="container mx-auto max-w-2xl">
             <div class="bg-gray-50 rounded-xl shadow-md p-6">
@@ -132,7 +134,7 @@
             </div>
         </div>
     </section>
-
+    }
     <section class="bg-white py-16">
         <div class="container mx-auto text-center">
             <h2 class="text-3xl font-bold text-gray-800">Мы в цифрах</h2>
@@ -200,11 +202,24 @@
     {
         if (firstRender)
         {
-            timer = new Timer(_ =>
+            try
             {
-                showModal = true;
-                InvokeAsync(StateHasChanged);
-            }, null, 30000, Timeout.Infinite);
+                UserRole = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "userRole");
+                IsAuthenticated = new[] { "Admin", "Owner", "User" }.Contains(UserRole);
+                StateHasChanged();
+
+                if (!IsAuthenticated)
+                {
+                    timer = new Timer(_ =>
+                    {
+                        showModal = true;
+                        InvokeAsync(StateHasChanged);
+                    }, null, 30000, Timeout.Infinite);
+                }
+            }
+            catch
+            {
+            }
         }
     }
 
@@ -212,18 +227,36 @@
     {
         showModal = false;
         timer?.Dispose();
+        StateHasChanged();
     }
 
     private async Task HandleSubmit()
     {
         try
         {
+            // Проверка авторизации
+            if (IsAuthenticated)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Авторизованные пользователи не могут отправлять гостевые заявки");
+                showModal = false;
+                formData = new FormData();
+                return;
+            }
+
+            // Валидация номера телефона
+            if (formData.Phone?.Length != 11 || !formData.Phone.StartsWith("7"))
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Некорректный формат телефона");
+                return;
+            }
+
             var guestApp = new GuestApplication
                 {
-                    FullName = formData.Name,
+                    FullName = formData.Name?.Trim() ?? "",
                     Phone = formData.Phone,
-                    Email = formData.Email,
-                    CreatedAt = DateTime.Now
+                    Email = formData.Email?.Trim() ?? "",
+                    CreatedAt = DateTime.Now,
+                    Status = "Новая"
                 };
 
             DbContext.GuestApplications.Add(guestApp);
@@ -231,11 +264,18 @@
 
             formData = new FormData();
             showModal = false;
+
             await JSRuntime.InvokeVoidAsync("alert", "Спасибо! Ваш вопрос отправлен.");
         }
+
         catch (Exception ex)
         {
+            Console.WriteLine($"Error: {ex.Message}");
             await JSRuntime.InvokeVoidAsync("alert", $"Ошибка: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
         }
     }
 
@@ -244,4 +284,10 @@
         timer?.Dispose();
         GC.SuppressFinalize(this);
     }
+
+
+    private string UserRole { get; set; }
+    private bool IsAuthenticated { get; set; }
+
+
 }
